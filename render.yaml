@@ -38,4 +38,4 @@ services:
         fromService:
           type: web
           name: testing-agry-backend
-          property: host
+          envVarKey: RENDER_EXTERNAL_URL
