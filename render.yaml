@@ -29,7 +29,6 @@ services:
   - type: web
     name: testing-agry-frontend
     env: static
-    plan: free # Render es gratis para frontend
     rootDir: "frontend"
     buildCommand: "npm install && npm run build"
     # Vite genera por defecto en la carpeta dist (relativa a frontend)
