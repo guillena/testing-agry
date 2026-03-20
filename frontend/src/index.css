@@ -1,0 +1,82 @@
+:root {
+  /* Kumespacio Palette */
+  --salmon: #b9d3fd; /* Now Celeste */
+  --light-blue: #ed9584; /* Now Salmon */
+  --yellow: #fae46a;
+  --turquoise: #52cbce;
+  --soft-gray: #f8f9fa;
+  --dark-text: #2c3e50;
+  --white: #ffffff;
+  
+  /* Fonts */
+  --font-main: 'Heebo', 'Roboto', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--soft-gray);
+  color: var(--dark-text);
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  color: var(--dark-text);
+  font-weight: 700;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Premium Card Style */
+.card {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: var(--salmon);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #9ebdf0; /* darker light blue */
+  box-shadow: 0 4px 12px rgba(185, 211, 253, 0.4);
+}
+
+.btn-secondary {
+  background-color: var(--light-blue);
+  color: var(--dark-text);
+}
+
+/* Glassmorphism Sidebar Example */
+.sidebar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+}
