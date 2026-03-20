@@ -1,11 +1,11 @@
 version: "1"
 
-services:
+databases:
   # 1. Base de datos PostgreSQL
-  - type: pgo
-    name: testing-agry-db
-    plan: free # El plan gratuito de base de datos en Render
+  - name: testing-agry-db
+    plan: free
 
+services:
   # 2. Web Service para el Backend (Node.js)
   - type: web
     name: testing-agry-backend
