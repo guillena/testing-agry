@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { LogIn } from 'lucide-react';
+import logo from '../assets/Logokume.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -30,7 +31,7 @@ const Login = () => {
     }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ color: 'var(--salmon)', marginBottom: '0.5rem' }}>Kümespacio</h1>
+          <img src={logo} alt="Kümespacio Logo" style={{ maxWidth: '200px', marginBottom: '0.5rem' }} />
           <p>Portal de Gestión</p>
         </div>
 

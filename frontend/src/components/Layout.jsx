@@ -9,6 +9,7 @@ import {
   LogOut,
   Flower2
 } from 'lucide-react';
+import logo from '../assets/Logokume.png';
 
 const Layout = () => {
   const { user, logout } = useAuth();
@@ -37,8 +38,7 @@ const Layout = () => {
           marginBottom: '3rem',
           padding: '0 1rem'
         }}>
-          <Flower2 size={32} color="var(--salmon)" />
-          <h2 style={{ fontSize: '1.5rem', letterSpacing: '-0.5px' }}>Kümespacio</h2>
+          <img src={logo} alt="Kümespacio Logo" style={{ maxWidth: '180px' }} />
         </div>
 
         <nav style={{ flex: 1 }}>
