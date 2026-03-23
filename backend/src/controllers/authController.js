@@ -4,12 +4,12 @@ const { Professional } = require('../models');
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    const { firstName, lastName, username, password, role } = req.body;
     const hashedPassword = await bcrypt.hash(password, 8);
     const professional = await Professional.create({
       firstName,
       lastName,
-      email,
+      username,
       password: hashedPassword,
       role
     });
@@ -23,17 +23,17 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const professional = await Professional.findOne({ where: { email } });
+    const { username, password } = req.body;
+    const professional = await Professional.findOne({ where: { username } });
 
     if (!professional) {
-      return res.status(404).send({ error: 'Unable to login' });
+      return res.status(404).send({ error: 'Usuario no encontrado' });
     }
 
     const isMatch = await bcrypt.compare(password, professional.password);
 
     if (!isMatch) {
-      return res.status(404).send({ error: 'Unable to login' });
+      return res.status(401).send({ error: 'Contraseña incorrecta' });
     }
 
     const token = jwt.sign({ id: professional.id }, process.env.JWT_SECRET);

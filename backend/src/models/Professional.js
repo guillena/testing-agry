@@ -15,12 +15,10 @@ const Professional = sequelize.define('Professional', {
     type: DataTypes.STRING,
     allowNull: false
   },
-  email: {
+  username: {
     type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isEmail: true
-    }
+    allowNull: false,
+    unique: true
   },
   password: {
     type: DataTypes.STRING,

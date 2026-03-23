@@ -16,20 +16,13 @@ const Patient = sequelize.define('Patient', {
     allowNull: false
   },
   docNumber: {
-    type: DataTypes.STRING(8),
+    type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
-    validate: {
-      isNumeric: true,
-      len: [8, 8]
-    }
+    unique: true
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: true,
-    validate: {
-      isEmail: true
-    }
+    allowNull: true
   },
   phone: {
     type: DataTypes.STRING,

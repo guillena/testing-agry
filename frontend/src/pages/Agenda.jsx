@@ -13,7 +13,7 @@ const Agenda = () => {
   
   // Dependencies for dropdowns
   const [patients, setPatients] = useState([]);
-  const [services, setServices] = useState([]);
+  const [benefits, setBenefits] = useState([]);
   const [professionals, setProfessionals] = useState([]);
 
   // Modal State
@@ -21,7 +21,7 @@ const Agenda = () => {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
     patientId: '',
-    serviceId: '',
+    benefitId: '',
     professionalId: '',
     date: '',
     startTime: '',
@@ -32,16 +32,16 @@ const Agenda = () => {
   useEffect(() => {
     fetchAppointments();
     fetchDependencies();
-  }, []);
+  }, [user.id]);
 
   const fetchDependencies = async () => {
     try {
-      const [pts, srvs] = await Promise.all([
+      const [pts, bnts] = await Promise.all([
         api.get('/patients'),
-        api.get('/services')
+        api.get('/benefits')
       ]);
       setPatients(pts.data);
-      setServices(srvs.data);
+      setBenefits(bnts.data);
 
       if (user.role === 'admin') {
         const profs = await api.get('/professionals');
@@ -57,7 +57,7 @@ const Agenda = () => {
       const response = await api.get('/appointments');
       const formattedEvents = response.data.map(app => ({
         id: app.id,
-        title: `${app.Patient.firstName} ${app.Patient.lastName} - ${app.Service.name}`,
+        title: `${app.Patient?.firstName} ${app.Patient?.lastName} - ${app.Benefit?.name}`,
         start: app.startTime,
         end: app.endTime,
         extendedProps: { ...app }
@@ -76,7 +76,7 @@ const Agenda = () => {
     setEditingId(null);
     setFormData({
       patientId: patients.length > 0 ? patients[0].id : '',
-      serviceId: services.length > 0 ? services[0].id : '',
+      benefitId: benefits.length > 0 ? benefits[0].id : '',
       professionalId: user.role === 'admin' && professionals.length > 0 ? professionals[0].id : user.id,
       date: startDate.toISOString().split('T')[0],
       startTime: startDate.toTimeString().substring(0, 5),
@@ -96,7 +96,7 @@ const Agenda = () => {
     setEditingId(app.id);
     setFormData({
       patientId: app.patientId,
-      serviceId: app.serviceId,
+      benefitId: app.benefitId,
       professionalId: app.professionalId || user.id,
       date: sDate.toISOString().split('T')[0],
       startTime: sDate.toTimeString().substring(0, 5),
@@ -115,7 +115,7 @@ const Agenda = () => {
 
       const payload = {
         patientId: formData.patientId,
-        serviceId: formData.serviceId,
+        benefitId: formData.benefitId,
         professionalId: user.role === 'admin' ? formData.professionalId : user.id,
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
@@ -158,7 +158,14 @@ const Agenda = () => {
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: 'dayGridMonth,timeGridWeek,workWeek,timeGridDay'
+          }}
+          views={{
+            workWeek: {
+              type: 'timeGridWeek',
+              hiddenDays: [0, 6],
+              buttonText: 'Semana Laboral'
+            }
           }}
           events={events}
           dateClick={handleDateClick}
@@ -201,16 +208,16 @@ const Agenda = () => {
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem' }}>Servicio</label>
+                <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem' }}>Prestación</label>
                 <select 
                   className="form-control" 
-                  value={formData.serviceId} 
-                  onChange={e => setFormData({...formData, serviceId: e.target.value})} 
+                  value={formData.benefitId} 
+                  onChange={e => setFormData({...formData, benefitId: e.target.value})} 
                   required
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }}
                 >
-                  <option value="" disabled>Seleccione un servicio</option>
-                  {services.map(s => <option key={s.id} value={s.id}>{s.name} ({s.duration} min)</option>)}
+                  <option value="" disabled>Seleccione una prestación</option>
+                  {benefits.map(s => <option key={s.id} value={s.id}>{s.name} ({s.duration} min)</option>)}
                 </select>
               </div>
 

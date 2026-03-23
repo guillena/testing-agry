@@ -173,7 +173,7 @@ const Dashboard = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontWeight: '600' }}>{app.Patient?.firstName} {app.Patient?.lastName}</p>
-                  <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>{app.Service?.name}</p>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.7 }}>{app.Benefit?.name}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ fontWeight: '600' }}>{formatDate(app.startTime)}</p>

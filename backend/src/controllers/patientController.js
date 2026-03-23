@@ -5,7 +5,12 @@ const createPatient = async (req, res) => {
     const patient = await Patient.create(req.body);
     res.status(201).send(patient);
   } catch (e) {
-    res.status(400).send(e);
+    console.error('SERVER ERROR CREATE PATIENT:', e);
+    res.status(400).send({ 
+      error: 'Error de validación o base de datos',
+      message: e.message,
+      errors: e.errors?.map(err => err.message) || []
+    });
   }
 };
 

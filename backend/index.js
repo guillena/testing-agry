@@ -9,7 +9,7 @@ const { sequelize } = require('./src/models');
 const authRoutes = require('./src/routes/authRoutes');
 const professionalRoutes = require('./src/routes/professionalRoutes');
 const patientRoutes = require('./src/routes/patientRoutes');
-const serviceRoutes = require('./src/routes/serviceRoutes');
+const benefitRoutes = require('./src/routes/benefitRoutes');
 const appointmentRoutes = require('./src/routes/appointmentRoutes');
 
 const app = express();
@@ -25,12 +25,18 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/professionals', professionalRoutes);
 app.use('/api/patients', patientRoutes);
-app.use('/api/services', serviceRoutes);
+app.use('/api/benefits', benefitRoutes);
 app.use('/api/appointments', appointmentRoutes);
 
 // Basic Route
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('GLOBAL ERROR:', err);
+  res.status(err.status || 500).send({ error: err.message, details: err });
 });
 
 // Database Sync and Start Server

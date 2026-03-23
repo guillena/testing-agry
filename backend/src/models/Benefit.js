@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Service = sequelize.define('Service', {
+const Benefit = sequelize.define('Benefit', {
   id: {
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
@@ -15,6 +15,8 @@ const Service = sequelize.define('Service', {
     type: DataTypes.TEXT,
     allowNull: true
   }
+}, {
+  tableName: 'Prestaciones'
 });
 
-module.exports = Service;
+module.exports = Benefit;

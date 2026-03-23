@@ -13,17 +13,18 @@ const auth = async (req, res, next) => {
 
     req.token = token;
     req.professional = professional;
+    console.log('AUTH SUCCESS. Body received:', req.body);
     next();
   } catch (e) {
     res.status(401).send({ error: 'Please authenticate.' });
   }
 };
 
-const admin = (req, res, next) => {
+const isAdmin = (req, res, next) => {
   if (req.professional.role !== 'admin') {
     return res.status(403).send({ error: 'Access denied. Admin only.' });
   }
   next();
 };
 
-module.exports = { auth, admin };
+module.exports = { auth, isAdmin };

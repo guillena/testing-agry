@@ -60,7 +60,8 @@ const Patients = () => {
       });
       fetchPatients();
     } catch (err) {
-      alert('Error al guardar el paciente. Verifique los datos.');
+      const msg = err.response?.data?.error || 'Error al guardar el paciente. Verifique los datos.';
+      alert(`Error: ${msg}`);
     }
   };
 
@@ -177,7 +178,7 @@ const Patients = () => {
                 </div>
               </div>
               <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Email</label>
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Email (Opcional)</label>
                 <input 
                   type="email" 
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}

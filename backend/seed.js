@@ -1,31 +1,47 @@
 const bcrypt = require('bcryptjs');
-const { Professional, DocumentType, sequelize } = require('./src/models');
+const { Professional, DocumentType, Benefit, sequelize } = require('./src/models');
 
 const seed = async () => {
   try {
     // Sync Database Schema
-    await sequelize.sync();
+    await sequelize.sync({ alter: true });
 
     // Create Document Types
     await DocumentType.findOrCreate({ where: { name: 'DNI' } });
     await DocumentType.findOrCreate({ where: { name: 'Pasaporte' } });
 
-    // Create Admin User
+    // Create Default Benefits
+    const benefits = [
+      { name: 'Consulta Médica', description: 'Atención general de primer nivel' },
+      { name: 'Kinesiología', description: 'Rehabilitación y fisioterapia' },
+      { name: 'Psicología', description: 'Terapia individual' }
+    ];
+
+    for (const b of benefits) {
+      await Benefit.findOrCreate({
+        where: { name: b.name },
+        defaults: b
+      });
+    }
+
+    // Create or Update Admin User
     const password = await bcrypt.hash('admin123', 8);
-    const [admin, created] = await Professional.findOrCreate({
-      where: { email: 'admin@kumespacio.com' },
+    let [admin, created] = await Professional.findOrCreate({
+      where: { username: 'admin' },
       defaults: {
         firstName: 'Admin',
         lastName: 'Kumespacio',
+        username: 'admin',
         password: password,
         role: 'admin'
       }
     });
 
-    if (created) {
-      console.log('✅ Usuario Admin creado con éxito: admin@kumespacio.com / admin123');
+    if (!created) {
+      await admin.update({ password });
+      console.log('ℹ️ El usuario Admin ya existía, se ha actualizado su contraseña.');
     } else {
-      console.log('ℹ️ El usuario Admin ya existe.');
+      console.log('✅ Usuario Admin creado con éxito: admin (usuario) / admin123 (clave)');
     }
 
     process.exit(0);

@@ -1,9 +1,9 @@
-const { Appointment, Patient, Service, Professional } = require('../models');
+const { Appointment, Patient, Benefit, Professional } = require('../models');
 const { Op } = require('sequelize');
 
 const createAppointment = async (req, res) => {
   try {
-    const { patientId, serviceId, startTime, endTime, notes } = req.body;
+    const { patientId, benefitId, startTime, endTime, notes } = req.body;
     let professionalId = req.professional.id; // Default to self
 
     // If admin, allow passing professionalId, if none passed, it remains admin's own ID
@@ -14,7 +14,7 @@ const createAppointment = async (req, res) => {
     const appointment = await Appointment.create({
       patientId,
       professionalId,
-      serviceId,
+      benefitId,
       startTime,
       endTime,
       notes
@@ -28,7 +28,7 @@ const createAppointment = async (req, res) => {
 
 const getAppointments = async (req, res) => {
   try {
-    const { start, end, professionalId, serviceId } = req.query;
+    const { start, end, professionalId, benefitId } = req.query;
     const where = {};
 
     if (start && end) {
@@ -43,14 +43,14 @@ const getAppointments = async (req, res) => {
       if (professionalId) where.professionalId = professionalId;
     }
 
-    if (serviceId) where.serviceId = serviceId;
+    if (benefitId) where.benefitId = benefitId;
 
     const appointments = await Appointment.findAll({
       where,
       include: [
         { model: Patient },
         { model: Professional, attributes: ['firstName', 'lastName'] },
-        { model: Service, attributes: ['name'] }
+        { model: Benefit, attributes: ['name'] }
       ]
     });
 
