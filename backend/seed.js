@@ -4,6 +4,16 @@ const { Professional, DocumentType, Benefit, sequelize } = require('./src/models
 const seed = async () => {
   try {
     // Sync Database Schema
+    console.log('--- ESTRUCTURA ACTUAL DE LA BD ---');
+    const tables = await sequelize.getQueryInterface().showAllTables();
+    for (const table of tables) {
+      if (typeof table === 'string') {
+        const description = await sequelize.getQueryInterface().describeTable(table);
+        console.log(`Tabla: ${table}`, JSON.stringify(description, null, 2));
+      }
+    }
+    console.log('--- FIN ESTRUCTURA ACTUAL ---');
+    
     await sequelize.sync({ alter: true });
 
     // Create Document Types
