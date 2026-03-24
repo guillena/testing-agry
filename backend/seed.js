@@ -14,7 +14,7 @@ const seed = async () => {
     }
     console.log('--- FIN ESTRUCTURA ACTUAL ---');
     
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ force: true });
 
     // Create Document Types
     await DocumentType.findOrCreate({ where: { name: 'DNI' } });
