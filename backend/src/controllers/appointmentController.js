@@ -49,7 +49,7 @@ const getAppointments = async (req, res) => {
       where,
       include: [
         { model: Patient },
-        { model: Professional, attributes: ['firstName', 'lastName'] },
+        { model: Professional, attributes: ['firstName', 'lastName', 'role', 'color'] },
         { model: Benefit, attributes: ['name'] }
       ]
     });

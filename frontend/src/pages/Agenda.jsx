@@ -60,6 +60,8 @@ const Agenda = () => {
         title: `${app.Patient?.firstName} ${app.Patient?.lastName} - ${app.Benefit?.name}`,
         start: app.startTime,
         end: app.endTime,
+        backgroundColor: (app.Professional?.role === 'admin' ? '#95a5a6' : app.Professional?.color) || 'var(--salmon)',
+        borderColor: 'transparent',
         extendedProps: { ...app }
       }));
       setEvents(formattedEvents);

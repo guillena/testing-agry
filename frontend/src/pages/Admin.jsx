@@ -10,7 +10,7 @@ const Admin = () => {
   const [professionals, setProfessionals] = useState([]);
   const [showProfModal, setShowProfModal] = useState(false);
   const [editingProfId, setEditingProfId] = useState(null);
-  const [profForm, setProfForm] = useState({ firstName: '', lastName: '', username: '', password: '', role: 'professional', benefitIds: [] });
+  const [profForm, setProfForm] = useState({ firstName: '', lastName: '', username: '', password: '', role: 'professional', color: '#b9d3fd', benefitIds: [] });
   const [profSortConfig, setProfSortConfig] = useState({ key: 'firstName', direction: 'asc' });
 
   // State for Benefits (Prestaciones)
@@ -65,12 +65,13 @@ const Admin = () => {
         lastName: prof.lastName, 
         username: prof.username, 
         role: prof.role,
+        color: prof.color || '#b9d3fd',
         benefitIds: prof.Benefits ? prof.Benefits.map(b => b.id) : [],
         password: '' 
       });
     } else {
       setEditingProfId(null);
-      setProfForm({ firstName: '', lastName: '', username: '', password: '', role: 'professional', benefitIds: [] });
+      setProfForm({ firstName: '', lastName: '', username: '', password: '', role: 'professional', color: '#b9d3fd', benefitIds: [] });
     }
     setShowPassword(false);
     setShowProfModal(true);
@@ -265,7 +266,10 @@ const Admin = () => {
               <tbody>
                 {sortedProfessionals.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--soft-gray)' }}>
-                    <td style={{ padding: '1rem', fontWeight: 'bold' }}>{p.firstName} {p.lastName}</td>
+                    <td style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', flexShrink: 0, backgroundColor: p.role === 'admin' ? '#95a5a6' : (p.color || '#b9d3fd') }}></div>
+                      {p.firstName} {p.lastName}
+                    </td>
                     <td style={{ padding: '1rem' }}>{p.username}</td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -413,6 +417,46 @@ const Admin = () => {
                   <option value="professional">Profesional</option>
                   <option value="admin">Administrador</option>
                 </select>
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '8px' }}>Color asociado</label>
+                {profForm.role === 'admin' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#95a5a6' }} />
+                    <span style={{ fontSize: '0.8rem', color: '#666' }}>Es gris por defecto para administradores</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[
+                      ['#E3F2FD', '#90CAF9', '#42A5F5', '#1E88E5'], // Azules
+                      ['#E8F5E9', '#A5D6A7', '#66BB6A', '#43A047'], // Verdes
+                      ['#FFF8E1', '#FFE082', '#FFCA28', '#FFB300'], // Amarillos/Naranjas
+                      ['#FFEBEE', '#FFCDD2', '#EF5350', '#E53935'], // Rojos
+                      ['#F3E5F5', '#CE93D8', '#AB47BC', '#8E24AA']  // Morados
+                    ].map((col, colIdx) => (
+                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {col.map(colorHex => (
+                          <div
+                            key={colorHex}
+                            onClick={() => setProfForm({...profForm, color: colorHex})}
+                            style={{
+                              width: '30px', 
+                              height: '30px', 
+                              backgroundColor: colorHex, 
+                              borderRadius: '4px', 
+                              cursor: 'pointer',
+                              border: profForm.color === colorHex ? '3px solid #333' : '1px solid transparent',
+                              transform: profForm.color === colorHex ? 'scale(1.1)' : 'scale(1)',
+                              transition: 'all 0.2s',
+                              boxShadow: profForm.color === colorHex ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                            }}
+                            title="Seleccionar color"
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem' }}>Prestaciones que brinda</label>

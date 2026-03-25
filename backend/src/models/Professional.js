@@ -27,6 +27,11 @@ const Professional = sequelize.define('Professional', {
   role: {
     type: DataTypes.ENUM('admin', 'professional'),
     defaultValue: 'professional'
+  },
+  color: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: '#b9d3fd'
   }
 });
 

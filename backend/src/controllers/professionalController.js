@@ -3,13 +3,15 @@ const { Professional, Benefit } = require('../models');
 
 const createProfessional = async (req, res) => {
   try {
-    const { firstName, lastName, username, password, role, benefitIds } = req.body;
+    let { firstName, lastName, username, password, role, benefitIds, color } = req.body;
+    if (role === 'admin') color = '#95a5a6';
+
     console.log('--- CREATE PROFESSIONAL ---');
     console.log('Body:', JSON.stringify({ ...req.body, password: '***' }));
     
     const hashedPassword = await bcrypt.hash(password, 8);
     const professional = await Professional.create({
-      firstName, lastName, username, password: hashedPassword, role
+      firstName, lastName, username, password: hashedPassword, role, color
     });
     console.log('Created ID:', professional.id);
 
@@ -61,6 +63,10 @@ const updateProfessional = async (req, res) => {
     } else {
       // Don't update password if empty string or missing
       delete updateData.password;
+    }
+
+    if (updateData.role === 'admin') {
+      updateData.color = '#95a5a6';
     }
     
     console.log('--- UPDATE PROFESSIONAL ---');
