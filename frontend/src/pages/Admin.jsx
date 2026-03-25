@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../api';
-import { Plus, Edit3, X, Users, Settings, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Edit3, X, Users, Settings, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('professionals'); // 'professionals' or 'benefits'
@@ -17,6 +17,7 @@ const Admin = () => {
   const [editingServId, setEditingServId] = useState(null);
   const [servForm, setServForm] = useState({ name: '', description: '', duration: 30, price: 0 });
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchProfessionals();
@@ -62,6 +63,7 @@ const Admin = () => {
       setEditingProfId(null);
       setProfForm({ firstName: '', lastName: '', username: '', password: '', role: 'professional', benefitIds: [] });
     }
+    setShowPassword(false);
     setShowProfModal(true);
   };
 
@@ -296,7 +298,34 @@ const Admin = () => {
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label>Contraseña {editingProfId && '(Dejar en blanco para no cambiar)'}</label>
-                <input type="password" required={!editingProfId} className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={profForm.password} onChange={e => setProfForm({...profForm, password: e.target.value})} />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required={!editingProfId} 
+                    className="form-control" 
+                    style={{ width: '100%', padding: '8px', paddingRight: '40px', borderRadius:'8px', border:'1px solid #ddd'}} 
+                    value={profForm.password} 
+                    onChange={e => setProfForm({...profForm, password: e.target.value})} 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#666',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label>Rol</label>
