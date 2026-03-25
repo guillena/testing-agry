@@ -154,7 +154,7 @@ const Agenda = () => {
       <div className="card" style={{ padding: '2rem' }}>
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
+          initialView="workWeek"
           headerToolbar={{
             left: 'prev,next today',
             center: 'title',
@@ -164,7 +164,7 @@ const Agenda = () => {
             workWeek: {
               type: 'timeGridWeek',
               hiddenDays: [0, 6],
-              buttonText: 'Semana Laboral'
+              buttonText: 'Laboral'
             }
           }}
           events={events}
@@ -174,7 +174,7 @@ const Agenda = () => {
           slotMaxTime="20:00:00"
           allDaySlot={false}
           locale="es"
-          buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' }}
+          buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', workWeek: 'Laboral', day: 'Día' }}
           eventBackgroundColor="var(--salmon)"
           eventBorderColor="transparent"
           height="700px"

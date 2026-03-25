@@ -13,6 +13,7 @@ const Dashboard = () => {
     totalPatients: 0,
     nextAppointments: [],
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -52,9 +53,11 @@ const Dashboard = () => {
           totalPatients: patients.length,
           nextAppointments: upcoming.slice(0, 3)
         });
+        setLoading(false);
 
       } catch (err) {
         console.error('Error fetching dashboard data', err);
+        setLoading(false);
       }
     };
 
@@ -79,6 +82,28 @@ const Dashboard = () => {
       return `${day} ${month}`;
     }
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+        <div style={{ 
+          width: '50px', 
+          height: '50px', 
+          border: '5px solid #e0e0e0', /* slightly darker gray for contrast */
+          borderTop: '5px solid var(--salmon)', 
+          borderRadius: '50%', 
+          animation: 'spin 1s linear infinite' 
+        }} />
+        <p style={{ marginTop: '1rem', fontWeight: 'bold', color: 'var(--dark-text)' }}>Cargando...</p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div>

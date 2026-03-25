@@ -262,10 +262,7 @@ const Patients = () => {
                   />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Guardar Paciente</button>
-              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Guardar Paciente</button>
             </form>
           </div>
         </div>

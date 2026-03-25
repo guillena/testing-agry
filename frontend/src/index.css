@@ -61,7 +61,7 @@ h1, h2, h3 {
 
 .btn-primary {
   background-color: var(--salmon);
-  color: white;
+  color: var(--dark-text);
 }
 
 .btn-primary:hover {

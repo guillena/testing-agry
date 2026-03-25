@@ -55,7 +55,7 @@ const Layout = () => {
                 padding: '12px 1rem',
                 borderRadius: '12px',
                 textDecoration: 'none',
-                color: isActive ? 'var(--white)' : 'var(--dark-text)',
+                color: 'var(--dark-text)',
                 backgroundColor: isActive ? 'var(--salmon)' : 'transparent',
                 marginBottom: '8px',
                 fontWeight: '600'
@@ -72,7 +72,7 @@ const Layout = () => {
                 padding: '12px 1rem',
                 borderRadius: '12px',
                 textDecoration: 'none',
-                color: isActive ? 'var(--white)' : 'var(--dark-text)',
+                color: 'var(--dark-text)',
                 backgroundColor: isActive ? 'var(--salmon)' : 'transparent',
                 marginBottom: '8px',
                 fontWeight: '600'
@@ -89,7 +89,7 @@ const Layout = () => {
                 padding: '12px 1rem',
                 borderRadius: '12px',
                 textDecoration: 'none',
-                color: isActive ? 'var(--white)' : 'var(--dark-text)',
+                color: 'var(--dark-text)',
                 backgroundColor: isActive ? 'var(--salmon)' : 'transparent',
                 marginBottom: '8px',
                 fontWeight: '600'
@@ -107,7 +107,7 @@ const Layout = () => {
                   padding: '12px 1rem',
                   borderRadius: '12px',
                   textDecoration: 'none',
-                  color: isActive ? 'var(--white)' : 'var(--dark-text)',
+                  color: 'var(--dark-text)',
                   backgroundColor: isActive ? 'var(--salmon)' : 'transparent',
                   marginBottom: '8px',
                   fontWeight: '600'

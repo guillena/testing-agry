@@ -65,7 +65,7 @@ const MessageModal = ({ isOpen, message, type = 'info', onClose, onCancel }) => 
               padding: '12px', 
               background: '#b9d3fd', // Celeste from --salmon
               border: '2px solid #b9d3fd',
-              color: 'white',
+              color: 'var(--dark-text)',
               fontWeight: 'bold',
               borderRadius: '8px'
             }}
