@@ -4,12 +4,22 @@ const DocumentType = require('./DocumentType');
 const Professional = require('./Professional');
 const Patient = require('./Patient');
 const Appointment = require('./Appointment');
+const ProfessionalBenefits = require('./ProfessionalBenefits');
 
 // Associations
 
 // Professional <-> Benefit (Many-to-Many)
-Professional.belongsToMany(Benefit, { through: 'ProfessionalBenefits' });
-Benefit.belongsToMany(Professional, { through: 'ProfessionalBenefits' });
+// Professional <-> Benefit (Many-to-Many)
+Professional.belongsToMany(Benefit, { 
+  through: ProfessionalBenefits, 
+  foreignKey: { name: 'ProfessionalId', allowNull: false, unique: false },
+  otherKey: { name: 'BenefitId', allowNull: false, unique: false }
+});
+Benefit.belongsToMany(Professional, { 
+  through: ProfessionalBenefits, 
+  foreignKey: { name: 'BenefitId', allowNull: false, unique: false },
+  otherKey: { name: 'ProfessionalId', allowNull: false, unique: false }
+});
 
 // DocumentType -> Patient (One-to-Many)
 DocumentType.hasMany(Patient, { foreignKey: 'docTypeId' });
@@ -24,7 +34,7 @@ Professional.hasMany(Appointment, { foreignKey: 'professionalId' });
 Appointment.belongsTo(Professional, { foreignKey: 'professionalId' });
 
 // Benefit -> Appointment (One-to-Many)
-Benefit.hasMany(Appointment, { foreignKey: 'benefitId' });
+Benefit.hasMany(Appointment, { foreignKey: 'benefitId', onDelete: 'CASCADE' });
 Appointment.belongsTo(Benefit, { foreignKey: 'benefitId' });
 
 module.exports = {

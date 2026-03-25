@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/Logokume.png';
+import MessageModal from '../components/MessageModal';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'alert' });
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const showMsg = (message) => {
+    setMsgModal({ isOpen: true, message, type: 'alert' });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +23,7 @@ const Login = () => {
       await login(username, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Credenciales inválidas. Por favor intente de nuevo.');
+      showMsg(err.response?.data?.error || 'Credenciales inválidas. Por favor intente de nuevo.');
     }
   };
 
@@ -35,8 +40,6 @@ const Login = () => {
           <img src={logo} alt="Kümespacio Logo" style={{ maxWidth: '200px', marginBottom: '0.5rem' }} />
           <p>Portal de Gestión</p>
         </div>
-
-        {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.5rem' }}>
@@ -90,6 +93,13 @@ const Login = () => {
           </button>
         </form>
       </div>
+      {/* Message Modal */}
+      <MessageModal 
+        isOpen={msgModal.isOpen}
+        message={msgModal.message}
+        type={msgModal.type}
+        onClose={() => setMsgModal({ ...msgModal, isOpen: false })}
+      />
     </div>
   );
 };

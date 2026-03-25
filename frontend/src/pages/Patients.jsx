@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import { Search, UserPlus, Edit3, X } from 'lucide-react';
+import MessageModal from '../components/MessageModal';
 
 const Patients = () => {
   const [patients, setPatients] = useState([]);
@@ -18,6 +19,13 @@ const Patients = () => {
     docTypeId: ''
   });
   const [editingId, setEditingId] = useState(null);
+  
+  // State for Global Messages
+  const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
+
+  const showMsg = (message, type = 'info', onConfirm = null) => {
+    setMsgModal({ isOpen: true, message, type, onConfirm });
+  };
 
   useEffect(() => {
     fetchPatients();
@@ -61,7 +69,7 @@ const Patients = () => {
       fetchPatients();
     } catch (err) {
       const msg = err.response?.data?.error || 'Error al guardar el paciente. Verifique los datos.';
-      alert(`Error: ${msg}`);
+      showMsg(msg, 'alert');
     }
   };
 
@@ -266,6 +274,18 @@ const Patients = () => {
           </tbody>
         </table>
       </div>
+      {/* Message Modal */}
+      <MessageModal 
+        isOpen={msgModal.isOpen}
+        message={msgModal.message}
+        type={msgModal.type}
+        onCancel={msgModal.onConfirm ? () => setMsgModal({ ...msgModal, isOpen: false }) : null}
+        onClose={() => {
+          if (msgModal.onConfirm) msgModal.onConfirm();
+          setMsgModal({ ...msgModal, isOpen: false, onConfirm: null });
+        }}
+      />
+
     </div>
   );
 };

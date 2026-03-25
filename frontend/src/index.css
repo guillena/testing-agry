@@ -65,8 +65,20 @@ h1, h2, h3 {
 }
 
 .btn-primary:hover {
-  background-color: #9ebdf0; /* darker light blue */
+  background-color: #9ebdf0;
   box-shadow: 0 4px 12px rgba(185, 211, 253, 0.4);
+}
+
+/* Hollow 'Aceptar' Style */
+.btn-accept {
+  background: transparent !important;
+  border: 2px solid var(--salmon) !important;
+  color: var(--salmon) !important;
+  font-weight: 700 !important;
+}
+
+.btn-accept:hover {
+  background: rgba(185, 211, 253, 0.1) !important;
 }
 
 .btn-secondary {

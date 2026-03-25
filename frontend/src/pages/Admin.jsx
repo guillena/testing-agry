@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../api';
-import { Plus, Edit3, X, Users, Settings, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Users, Settings, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import MessageModal from '../components/MessageModal';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('professionals'); // 'professionals' or 'benefits'
@@ -18,6 +19,13 @@ const Admin = () => {
   const [servForm, setServForm] = useState({ name: '', description: '', duration: 30, price: 0 });
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [showPassword, setShowPassword] = useState(false);
+  
+  // State for Global Messages
+  const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
+
+  const showMsg = (message, type = 'info', onConfirm = null) => {
+    setMsgModal({ isOpen: true, message, type, onConfirm });
+  };
 
   useEffect(() => {
     fetchProfessionals();
@@ -44,7 +52,7 @@ const Admin = () => {
       fetchProfessionals();
     } catch (err) { 
       const msg = err.response?.data?.error || 'Error al guardar profesional.';
-      alert(`Error: ${msg}`); 
+      showMsg(msg, 'alert'); 
     }
   };
 
@@ -85,7 +93,9 @@ const Admin = () => {
       }
       setShowServModal(false);
       fetchBenefits();
-    } catch (err) { alert('Error al guardar prestación.'); }
+    } catch (err) { 
+      showMsg('Error al guardar prestación.', 'alert'); 
+    }
   };
 
   const openServModal = (serv = null) => {
@@ -97,6 +107,28 @@ const Admin = () => {
       setServForm({ name: '', description: '', duration: 30, price: 0 });
     }
     setShowServModal(true);
+  };
+
+  const handleServDelete = async (id) => {
+    showMsg(
+      '¿Estás seguro de que quieres eliminar esta prestación? Se eliminarán también todas las citas asociadas.', 
+      'info', 
+      async () => {
+        try {
+          await api.delete(`/benefits/${id}`);
+          fetchBenefits(); // Just refresh without showing success modal
+        } catch (err) {
+          if (err.response?.status === 400) {
+            const errorData = err.response.data.error;
+            // Improved error message
+            const clearMsg = `Esta prestación no puede ser eliminada porque está vinculada a los siguientes profesionales activos: \n\n${errorData.split(': ')[1]} \n\nPara poder borrarla, primero debes desvincularla de sus perfiles en la pestaña de Profesionales.`;
+            showMsg(clearMsg, 'alert');
+          } else {
+            showMsg('Lo sentimos, ha ocurrido un sistema en el servidor al intentar eliminar la prestación.', 'alert');
+          }
+        }
+      }
+    );
   };
 
   const handleSort = (key) => {
@@ -259,9 +291,14 @@ const Admin = () => {
                     <td style={{ padding: '1rem' }}>{s.duration}</td>
                     <td style={{ padding: '1rem' }}>${s.price}</td>
                     <td style={{ padding: '1rem' }}>
-                      <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openServModal(s)}>
-                        <Edit3 size={18} color="var(--salmon)" />
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openServModal(s)}>
+                          <Edit3 size={18} color="var(--salmon)" />
+                        </button>
+                        <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleServDelete(s.id)}>
+                          <Trash2 size={18} color="#e74c3c" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -281,7 +318,7 @@ const Admin = () => {
           <div className="card" style={{ width: '100%', maxWidth: '500px', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
             <button onClick={() => setShowProfModal(false)} style={{ position: 'absolute', right: '15px', top: '15px', background: 'transparent', border: 'none', cursor: 'pointer' }}><X /></button>
             <h2>{editingProfId ? 'Editar Profesional' : 'Nuevo Profesional'}</h2>
-            <form onSubmit={handleProfSubmit} style={{ marginTop: '1rem' }}>
+            <form onSubmit={handleProfSubmit} style={{ marginTop: '1rem' }} autoComplete="off">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label>Nombre</label>
@@ -294,13 +331,14 @@ const Admin = () => {
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label>Usuario</label>
-                <input type="text" required className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={profForm.username} onChange={e => setProfForm({...profForm, username: e.target.value})} />
+                <input type="text" autoComplete="none" required className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={profForm.username} onChange={e => setProfForm({...profForm, username: e.target.value})} />
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label>Contraseña {editingProfId && '(Dejar en blanco para no cambiar)'}</label>
                 <div style={{ position: 'relative' }}>
                   <input 
                     type={showPassword ? "text" : "password"} 
+                    autoComplete="new-password"
                     required={!editingProfId} 
                     className="form-control" 
                     style={{ width: '100%', padding: '8px', paddingRight: '40px', borderRadius:'8px', border:'1px solid #ddd'}} 
@@ -388,6 +426,18 @@ const Admin = () => {
           </div>
         </div>
       )}
+
+      {/* Message Modal */}
+      <MessageModal 
+        isOpen={msgModal.isOpen}
+        message={msgModal.message}
+        type={msgModal.type}
+        onCancel={msgModal.onConfirm ? () => setMsgModal({ ...msgModal, isOpen: false }) : null}
+        onClose={() => {
+          if (msgModal.onConfirm) msgModal.onConfirm();
+          setMsgModal({ ...msgModal, isOpen: false, onConfirm: null });
+        }}
+      />
 
     </div>
   );

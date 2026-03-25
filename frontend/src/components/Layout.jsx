@@ -33,12 +33,14 @@ const Layout = () => {
       }}>
         <div style={{ 
           display: 'flex', 
-          alignItems: 'center', 
-          gap: '12px', 
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: '4px',
           marginBottom: '3rem',
           padding: '0 1rem'
         }}>
           <img src={logo} alt="Kümespacio Logo" style={{ maxWidth: '180px' }} />
+          <span style={{ color: 'red', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Development</span>
         </div>
 
         <nav style={{ flex: 1 }}>
