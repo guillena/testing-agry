@@ -19,8 +19,8 @@ async function fixAll() {
     });
     
     // Seed some benefits
-    const ben1 = await Benefit.create({ name: 'Consulta Médica', duration: '30m', price: 5000, description: 'Consulta general' });
-    const ben2 = await Benefit.create({ name: 'Psicología', duration: '45m', price: 7000, description: 'Sesión individual' });
+    const ben1 = await Benefit.create({ name: 'Consulta Médica', description: 'Consulta general' });
+    const ben2 = await Benefit.create({ name: 'Psicología', description: 'Sesión individual' });
     
     // Seed doc types
     await DocumentType.bulkCreate([{ name: 'DNI' }, { name: 'Pasaporte' }]);

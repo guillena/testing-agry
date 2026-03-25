@@ -14,14 +14,6 @@ const Benefit = sequelize.define('Benefit', {
   description: {
     type: DataTypes.TEXT,
     allowNull: true
-  },
-  duration: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  price: {
-    type: DataTypes.INTEGER,
-    allowNull: true
   }
 }, {
   tableName: 'Prestaciones'

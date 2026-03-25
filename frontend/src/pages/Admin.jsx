@@ -11,12 +11,13 @@ const Admin = () => {
   const [showProfModal, setShowProfModal] = useState(false);
   const [editingProfId, setEditingProfId] = useState(null);
   const [profForm, setProfForm] = useState({ firstName: '', lastName: '', username: '', password: '', role: 'professional', benefitIds: [] });
+  const [profSortConfig, setProfSortConfig] = useState({ key: 'firstName', direction: 'asc' });
 
   // State for Benefits (Prestaciones)
   const [benefits, setBenefits] = useState([]);
   const [showServModal, setShowServModal] = useState(false);
   const [editingServId, setEditingServId] = useState(null);
-  const [servForm, setServForm] = useState({ name: '', description: '', duration: 30, price: 0 });
+  const [servForm, setServForm] = useState({ name: '', description: '' });
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
   const [showPassword, setShowPassword] = useState(false);
   
@@ -75,6 +76,41 @@ const Admin = () => {
     setShowProfModal(true);
   };
 
+  const handleProfSort = (key) => {
+    let direction = 'asc';
+    if (profSortConfig.key === key && profSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setProfSortConfig({ key, direction });
+  };
+
+  const sortedProfessionals = useMemo(() => {
+    const sortableItems = [...professionals];
+    if (profSortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[profSortConfig.key];
+        let bValue = b[profSortConfig.key];
+        
+        if (profSortConfig.key === 'firstName') {
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+        } else if (profSortConfig.key === 'username' || profSortConfig.key === 'role') {
+          aValue = aValue ? aValue.toLowerCase() : '';
+          bValue = bValue ? bValue.toLowerCase() : '';
+        }
+
+        if (aValue < bValue) {
+          return profSortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return profSortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [professionals, profSortConfig]);
+
   // --- Benefits Methods ---
   const fetchBenefits = async () => {
     try {
@@ -104,7 +140,7 @@ const Admin = () => {
       setServForm({ ...serv });
     } else {
       setEditingServId(null);
-      setServForm({ name: '', description: '', duration: 30, price: 0 });
+      setServForm({ name: '', description: '' });
     }
     setShowServModal(true);
   };
@@ -120,9 +156,7 @@ const Admin = () => {
         } catch (err) {
           if (err.response?.status === 400) {
             const errorData = err.response.data.error;
-            // Improved error message
-            const clearMsg = `Esta prestación no puede ser eliminada porque está vinculada a los siguientes profesionales activos: \n\n${errorData.split(': ')[1]} \n\nPara poder borrarla, primero debes desvincularla de sus perfiles en la pestaña de Profesionales.`;
-            showMsg(clearMsg, 'alert');
+            showMsg(errorData, 'alert');
           } else {
             showMsg('Lo sentimos, ha ocurrido un sistema en el servidor al intentar eliminar la prestación.', 'alert');
           }
@@ -209,15 +243,27 @@ const Admin = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--soft-gray)' }}>
-                  <th style={{ padding: '1rem' }}>Nombre</th>
-                  <th style={{ padding: '1rem' }}>Usuario</th>
+                  <th style={{ padding: '1rem', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleProfSort('firstName')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Nombre {profSortConfig.key === 'firstName' && (profSortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
+                  </th>
+                  <th style={{ padding: '1rem', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleProfSort('username')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Usuario {profSortConfig.key === 'username' && (profSortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
+                  </th>
                   <th style={{ padding: '1rem' }}>Prestaciones</th>
-                  <th style={{ padding: '1rem' }}>Rol</th>
+                  <th style={{ padding: '1rem', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleProfSort('role')}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Rol {profSortConfig.key === 'role' && (profSortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+                    </div>
+                  </th>
                   <th style={{ padding: '1rem' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {professionals.map(p => (
+                {sortedProfessionals.map(p => (
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--soft-gray)' }}>
                     <td style={{ padding: '1rem', fontWeight: 'bold' }}>{p.firstName} {p.lastName}</td>
                     <td style={{ padding: '1rem' }}>{p.username}</td>
@@ -263,9 +309,7 @@ const Admin = () => {
                 <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--soft-gray)' }}>
                   {[
                     { label: 'Prestación', key: 'name' },
-                    { label: 'Descripción', key: 'description' },
-                    { label: 'Duración (min)', key: 'duration' },
-                    { label: 'Precio', key: 'price' }
+                    { label: 'Descripción', key: 'description' }
                   ].map(header => (
                     <th 
                       key={header.key} 
@@ -288,8 +332,6 @@ const Admin = () => {
                   <tr key={s.id} style={{ borderBottom: '1px solid var(--soft-gray)' }}>
                     <td style={{ padding: '1rem', fontWeight: 'bold' }}>{s.name}</td>
                     <td style={{ padding: '1rem', fontSize: '0.9rem', color: '#666' }}>{s.description}</td>
-                    <td style={{ padding: '1rem' }}>{s.duration}</td>
-                    <td style={{ padding: '1rem' }}>${s.price}</td>
                     <td style={{ padding: '1rem' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openServModal(s)}>
@@ -407,19 +449,9 @@ const Admin = () => {
                 <label>Nombre de la Prestación</label>
                 <input type="text" required className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={servForm.name} onChange={e => setServForm({...servForm, name: e.target.value})} />
               </div>
-              <div style={{ marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
                 <label>Descripción</label>
                 <textarea className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={servForm.description} onChange={e => setServForm({...servForm, description: e.target.value})} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <label>Duración (min)</label>
-                  <input type="number" required min="1" className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={servForm.duration} onChange={e => setServForm({...servForm, duration: e.target.value})} />
-                </div>
-                <div>
-                  <label>Precio</label>
-                  <input type="number" required min="0" className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={servForm.price} onChange={e => setServForm({...servForm, price: e.target.value})} />
-                </div>
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Guardar</button>
             </form>

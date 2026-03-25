@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const Patients = () => {
@@ -19,6 +19,7 @@ const Patients = () => {
     docTypeId: ''
   });
   const [editingId, setEditingId] = useState(null);
+  const [sortConfig, setSortConfig] = useState({ key: 'firstName', direction: 'asc' });
   
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
@@ -97,9 +98,56 @@ const Patients = () => {
     setShowModal(true);
   };
 
-  const filteredPatients = patients.filter(p => 
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedPatients = React.useMemo(() => {
+    let sortableItems = [...patients];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key] || '';
+        let bValue = b[sortConfig.key] || '';
+        if (sortConfig.key === 'firstName') {
+          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
+          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+        } else if (sortConfig.key === 'phone') {
+          aValue = aValue.toString();
+          bValue = bValue.toString();
+        } else if (sortConfig.key === 'docNumber') {
+          aValue = aValue.toString();
+          bValue = bValue.toString();
+        } else {
+           aValue = aValue.toString().toLowerCase();
+           bValue = bValue.toString().toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [patients, sortConfig]);
+
+  const filteredPatients = sortedPatients.filter(p => 
     `${p.firstName} ${p.lastName} ${p.docNumber}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getSortIcon = (columnName) => {
+    if (sortConfig.key === columnName) {
+      return sortConfig.direction === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
+    }
+    return <ArrowUpDown size={16} style={{ opacity: 0.3 }} />;
+  };
 
   return (
     <div>
@@ -245,9 +293,15 @@ const Patients = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--soft-gray)' }}>
-              <th style={{ padding: '1rem' }}>Paciente</th>
-              <th style={{ padding: '1rem' }}>DNI</th>
-              <th style={{ padding: '1rem' }}>Contacto</th>
+              <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('firstName')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Paciente {getSortIcon('firstName')}</div>
+              </th>
+              <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('docNumber')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>DNI {getSortIcon('docNumber')}</div>
+              </th>
+              <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('phone')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Contacto {getSortIcon('phone')}</div>
+              </th>
               <th style={{ padding: '1rem' }}>Acciones</th>
             </tr>
           </thead>
