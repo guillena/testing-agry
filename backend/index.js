@@ -11,6 +11,7 @@ const professionalRoutes = require('./src/routes/professionalRoutes');
 const patientRoutes = require('./src/routes/patientRoutes');
 const benefitRoutes = require('./src/routes/benefitRoutes');
 const appointmentRoutes = require('./src/routes/appointmentRoutes');
+const activityRoutes = require('./src/routes/activityRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,6 +28,7 @@ app.use('/api/professionals', professionalRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/benefits', benefitRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Basic Route
 app.get('/health', (req, res) => {

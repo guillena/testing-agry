@@ -5,6 +5,7 @@ const Professional = require('./Professional');
 const Patient = require('./Patient');
 const Appointment = require('./Appointment');
 const ProfessionalBenefits = require('./ProfessionalBenefits');
+const Activity = require('./Activity');
 
 // Associations
 
@@ -37,11 +38,20 @@ Appointment.belongsTo(Professional, { foreignKey: 'professionalId' });
 Benefit.hasMany(Appointment, { foreignKey: 'benefitId', onDelete: 'CASCADE' });
 Appointment.belongsTo(Benefit, { foreignKey: 'benefitId' });
 
+// Patient -> Activity (One-to-Many)
+Patient.hasMany(Activity, { foreignKey: 'patientId', onDelete: 'CASCADE' });
+Activity.belongsTo(Patient, { foreignKey: 'patientId' });
+
+// Professional -> Activity (One-to-Many)
+Professional.hasMany(Activity, { foreignKey: 'professionalId' });
+Activity.belongsTo(Professional, { foreignKey: 'professionalId' });
+
 module.exports = {
   sequelize,
   Benefit,
   DocumentType,
   Professional,
   Patient,
-  Appointment
+  Appointment,
+  Activity
 };

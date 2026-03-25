@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const Patients = () => {
@@ -20,6 +20,12 @@ const Patients = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'firstName', direction: 'asc' });
+  
+  // State for Activities
+  const [showActivitiesModal, setShowActivitiesModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [newActivityDesc, setNewActivityDesc] = useState('');
   
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
@@ -147,6 +153,32 @@ const Patients = () => {
       return sortConfig.direction === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />;
     }
     return <ArrowUpDown size={16} style={{ opacity: 0.3 }} />;
+  };
+
+  const openActivities = async (patient) => {
+    setSelectedPatient(patient);
+    try {
+      const response = await api.get(`/activities/patient/${patient.id}`);
+      setActivities(response.data);
+      setShowActivitiesModal(true);
+    } catch (err) {
+      showMsg('Error al cargar actividades.', 'alert');
+    }
+  };
+
+  const handleAddActivity = async (e) => {
+    e.preventDefault();
+    if (!newActivityDesc.trim()) return;
+    try {
+      const response = await api.post('/activities', {
+        patientId: selectedPatient.id,
+        description: newActivityDesc
+      });
+      setActivities([response.data, ...activities]);
+      setNewActivityDesc('');
+    } catch (err) {
+      showMsg('Error al agregar actividad.', 'alert');
+    }
   };
 
   return (
@@ -312,9 +344,14 @@ const Patients = () => {
                   <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{p.email || 'Sin email'}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleEdit(p)}>
-                    <Edit3 size={18} color="var(--salmon)" />
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleEdit(p)} title="Editar Paciente">
+                      <Edit3 size={18} color="var(--salmon)" />
+                    </button>
+                    <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openActivities(p)} title="Actividades">
+                      <Activity size={18} color="var(--light-blue)" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             )) : (
@@ -325,6 +362,56 @@ const Patients = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Activities Modal */}
+      {showActivitiesModal && selectedPatient && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '600px', position: 'relative', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <button 
+              onClick={() => { setShowActivitiesModal(false); setSelectedPatient(null); setNewActivityDesc(''); }}
+              style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem', paddingRight: '30px' }}>Actividades - {selectedPatient.firstName} {selectedPatient.lastName}</h2>
+            
+            {/* Activities List */}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem', paddingRight: '10px' }}>
+              {activities.length > 0 ? activities.map(act => (
+                <div key={act.id} style={{ padding: '15px', border: '1px solid #eee', borderRadius: '8px', marginBottom: '1rem', backgroundColor: '#fdfdfd' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem', color: '#666' }}>
+                    <strong>{act.Professional ? `${act.Professional.firstName} ${act.Professional.lastName}` : 'Profesional'}</strong>
+                    <span>{new Date(act.date).toLocaleString()}</span>
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', color: 'var(--dark-text)' }}>{act.description}</div>
+                </div>
+              )) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>No hay actividades registradas.</div>
+              )}
+            </div>
+
+            {/* Add Activity Form */}
+            <form onSubmit={handleAddActivity} style={{ borderTop: '2px solid var(--soft-gray)', paddingTop: '1.5rem' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '8px', fontWeight: 'bold' }}>Nueva Actividad</label>
+                <textarea 
+                  required
+                  rows="3"
+                  placeholder="Ej: Se atendió el día de hoy, evolución favorable..."
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ccc', resize: 'vertical' }}
+                  value={newActivityDesc}
+                  onChange={e => setNewActivityDesc(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', color: 'var(--dark-text)' }}>Agregar Actividad</button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Message Modal */}
       <MessageModal 
         isOpen={msgModal.isOpen}
