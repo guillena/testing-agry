@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const provinces = [
@@ -32,6 +32,7 @@ const Patients = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [showOnlyActive, setShowOnlyActive] = useState(true);
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'card'
   const [sortConfig, setSortConfig] = useState({ key: 'firstName', direction: 'asc' });
   
   // State for Activities
@@ -382,7 +383,7 @@ const Patients = () => {
             }}
           />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: '1rem', paddingLeft: '4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', paddingLeft: '4px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', cursor: 'pointer', color: '#555' }}>
             <input 
               type="checkbox"
@@ -392,11 +393,27 @@ const Patients = () => {
             />
             Mostrar solo pacientes activos
           </label>
+
+          <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#eee', borderRadius: '8px', padding: '4px' }}>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: viewMode === 'list' ? 'white' : 'transparent', borderRadius: '6px', cursor: 'pointer', boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'list' ? '#333' : '#777', transition: 'all 0.2s' }}
+            >
+              <List size={18} /> Lista
+            </button>
+            <button
+              onClick={() => setViewMode('card')}
+              style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: viewMode === 'card' ? 'white' : 'transparent', borderRadius: '6px', cursor: 'pointer', boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', color: viewMode === 'card' ? '#333' : '#777', transition: 'all 0.2s' }}
+            >
+              <Grid size={18} /> Tarjetas
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      {viewMode === 'list' ? (
+        <div className="card">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '2px solid var(--soft-gray)' }}>
               <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('firstName')}>
@@ -442,6 +459,50 @@ const Patients = () => {
           </tbody>
         </table>
       </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+          {filteredPatients.length > 0 ? filteredPatients.map(p => (
+            <div key={p.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', position: 'relative', border: '1px solid #eaeaea', borderRadius: '12px' }}>
+              {p.isInactive && (
+                <span style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '0.7rem', backgroundColor: '#fee2e2', color: '#ef4444', padding: '4px 8px', borderRadius: '6px', border: '1px solid #fca5a5', fontWeight: 'bold' }}>
+                  INACTIVO
+                </span>
+              )}
+              <h3 style={{ margin: '0 0 1rem 0', paddingRight: '60px', color: 'var(--dark-text)' }}>{p.lastName}, {p.firstName}</h3>
+              
+              <div style={{ marginBottom: '1.2rem', flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>DNI:</span> {p.docNumber}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Teléfono:</span> {p.phone || 'N/A'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Email:</span> {p.email || 'N/A'}
+                </div>
+                {(p.city || p.province || p.street) && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: '#555', fontSize: '0.9rem' }}>
+                    <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Ciudad:</span> {p.city || p.province || p.street}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #eee', paddingTop: '1rem', marginTop: 'auto' }}>
+                <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => handleEdit(p)}>
+                  <Edit3 size={16} color="var(--salmon)" /> Editar
+                </button>
+                <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openActivities(p)}>
+                  <Activity size={16} color="var(--light-blue)" /> Historial
+                </button>
+              </div>
+            </div>
+          )) : (
+            <div style={{ gridColumn: '1 / -1', padding: '3rem', textAlign: 'center', color: '#888', background: 'white', border: '1px solid #eee', borderRadius: '12px' }}>
+              No se encontraron pacientes.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Activities Modal */}
       {showActivitiesModal && selectedPatient && (
