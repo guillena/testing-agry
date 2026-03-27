@@ -28,11 +28,35 @@ const Patient = sequelize.define('Patient', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  whatsapp: {
+  isInactive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  street: {
     type: DataTypes.STRING,
     allowNull: true
   },
-  address: {
+  number: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  floor: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  apartment: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  province: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  postalCode: {
     type: DataTypes.STRING,
     allowNull: true
   }

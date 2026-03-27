@@ -80,10 +80,12 @@ const Agenda = () => {
     const startDate = arg.date;
     const endDate = new Date(startDate.getTime() + 30 * 60000);
 
+    const activePatients = patients.filter(p => !p.isInactive);
+
     setEditingId(null);
     setDeleteFuture(false);
     setFormData({
-      patientId: patients.length > 0 ? patients[0].id : '',
+      patientId: activePatients.length > 0 ? activePatients[0].id : '',
       benefitId: benefits.length > 0 ? benefits[0].id : '',
       professionalId: user.role === 'admin' && professionals.length > 0 ? professionals[0].id : user.id,
       date: startDate.toISOString().split('T')[0],
@@ -273,7 +275,10 @@ const Agenda = () => {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }}
                 >
                   <option value="" disabled>Seleccione un paciente</option>
-                  {patients.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
+                  {patients
+                    .filter(p => !p.isInactive || p.id === formData.patientId)
+                    .map(p => <option key={p.id} value={p.id}>{p.lastName}, {p.firstName}</option>)
+                  }
                 </select>
               </div>
 

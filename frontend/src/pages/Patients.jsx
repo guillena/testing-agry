@@ -3,6 +3,12 @@ import api from '../api';
 import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
+const provinces = [
+  'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba', 'Corrientes', 'Entre Ríos', 
+  'Formosa', 'Jujuy', 'La Pampa', 'La Rioja', 'Mendoza', 'Misiones', 'Neuquén', 'Río Negro', 
+  'Salta', 'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán'
+];
+
 const Patients = () => {
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -14,11 +20,18 @@ const Patients = () => {
     docNumber: '',
     email: '',
     phone: '',
-    whatsapp: '',
-    address: '',
-    docTypeId: ''
+    street: '',
+    number: '',
+    floor: '',
+    apartment: '',
+    province: '',
+    city: '',
+    postalCode: '',
+    docTypeId: '',
+    isInactive: false
   });
   const [editingId, setEditingId] = useState(null);
+  const [showOnlyActive, setShowOnlyActive] = useState(true);
   const [sortConfig, setSortConfig] = useState({ key: 'firstName', direction: 'asc' });
   
   // State for Activities
@@ -71,7 +84,7 @@ const Patients = () => {
       setShowModal(false);
       setEditingId(null);
       setFormData({
-        firstName: '', lastName: '', docNumber: '', email: '', phone: '', whatsapp: '', address: '', docTypeId: ''
+        firstName: '', lastName: '', docNumber: '', email: '', phone: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '', docTypeId: '', isInactive: false
       });
       fetchPatients();
     } catch (err) {
@@ -87,9 +100,15 @@ const Patients = () => {
       docNumber: patient.docNumber,
       email: patient.email || '',
       phone: patient.phone || '',
-      whatsapp: patient.whatsapp || '',
-      address: patient.address || '',
-      docTypeId: patient.docTypeId || (docTypes.length > 0 ? docTypes[0].id : '')
+      street: patient.street || '',
+      number: patient.number || '',
+      floor: patient.floor || '',
+      apartment: patient.apartment || '',
+      province: patient.province || '',
+      city: patient.city || '',
+      postalCode: patient.postalCode || '',
+      docTypeId: patient.docTypeId || (docTypes.length > 0 ? docTypes[0].id : ''),
+      isInactive: patient.isInactive || false
     });
     setEditingId(patient.id);
     setShowModal(true);
@@ -98,8 +117,9 @@ const Patients = () => {
   const openCreateModal = () => {
     setEditingId(null);
     setFormData({
-      firstName: '', lastName: '', docNumber: '', email: '', phone: '', whatsapp: '', address: '', 
-      docTypeId: docTypes.length > 0 ? docTypes[0].id : ''
+      firstName: '', lastName: '', docNumber: '', email: '', phone: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '',
+      docTypeId: docTypes.length > 0 ? docTypes[0].id : '',
+      isInactive: false
     });
     setShowModal(true);
   };
@@ -119,8 +139,8 @@ const Patients = () => {
         let aValue = a[sortConfig.key] || '';
         let bValue = b[sortConfig.key] || '';
         if (sortConfig.key === 'firstName') {
-          aValue = `${a.firstName} ${a.lastName}`.toLowerCase();
-          bValue = `${b.firstName} ${b.lastName}`.toLowerCase();
+          aValue = `${a.lastName}, ${a.firstName}`.toLowerCase();
+          bValue = `${b.lastName}, ${b.firstName}`.toLowerCase();
         } else if (sortConfig.key === 'phone') {
           aValue = aValue.toString();
           bValue = bValue.toString();
@@ -144,9 +164,10 @@ const Patients = () => {
     return sortableItems;
   }, [patients, sortConfig]);
 
-  const filteredPatients = sortedPatients.filter(p => 
-    `${p.firstName} ${p.lastName} ${p.docNumber}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPatients = sortedPatients.filter(p => {
+    if (showOnlyActive && p.isInactive) return false;
+    return `${p.lastName}, ${p.firstName} ${p.docNumber}`.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const getSortIcon = (columnName) => {
     if (sortConfig.key === columnName) {
@@ -207,7 +228,7 @@ const Patients = () => {
           zIndex: 1000,
           backdropFilter: 'blur(4px)'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', position: 'relative' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
             <button 
               onClick={() => setShowModal(false)}
               style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
@@ -218,6 +239,16 @@ const Patients = () => {
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Primer Apellido</label>
+                  <input 
+                    type="text" 
+                    required
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                    value={formData.lastName}
+                    onChange={e => setFormData({...formData, lastName: e.target.value})}
+                  />
+                </div>
+                <div>
                   <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nombre</label>
                   <input 
                     type="text" 
@@ -225,16 +256,6 @@ const Patients = () => {
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
                     value={formData.firstName}
                     onChange={e => setFormData({...formData, firstName: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Apellido</label>
-                  <input 
-                    type="text" 
-                    required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.lastName}
-                    onChange={e => setFormData({...formData, lastName: e.target.value})}
                   />
                 </div>
               </div>
@@ -274,25 +295,70 @@ const Patients = () => {
                   onChange={e => setFormData({...formData, email: e.target.value})}
                 />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono</label>
-                  <input 
-                    type="text" 
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                  />
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono</label>
+                <input 
+                  type="text" 
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #eee' }}>
+                <h3 style={{ fontSize: '0.95rem', borderBottom: '1px solid #e0e0e0', paddingBottom: '8px', marginBottom: '12px', color: '#555' }}>Dirección (Opcional)</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Calle</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Nro</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.number} onChange={e => setFormData({...formData, number: e.target.value})} />
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>WhatsApp (Opcional)</label>
-                  <input 
-                    type="text" 
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.whatsapp}
-                    onChange={e => setFormData({...formData, whatsapp: e.target.value})}
-                  />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Piso</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Dto</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.apartment} onChange={e => setFormData({...formData, apartment: e.target.value})} />
+                  </div>
                 </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '0.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Provincia</label>
+                    <select style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})}>
+                      <option value="">Seleccione...</option>
+                      {provinces.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Ciudad</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>C. Postal</label>
+                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: '#fdfdfd', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
+                  <input 
+                    type="checkbox"
+                    checked={formData.isInactive}
+                    onChange={e => setFormData({...formData, isInactive: e.target.checked})}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Deshabilitar Paciente (Inactivo)</span>
+                </label>
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Guardar Paciente</button>
             </form>
@@ -316,6 +382,17 @@ const Patients = () => {
             }}
           />
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '1rem', paddingLeft: '4px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', cursor: 'pointer', color: '#555' }}>
+            <input 
+              type="checkbox"
+              checked={showOnlyActive}
+              onChange={e => setShowOnlyActive(e.target.checked)}
+              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+            />
+            Mostrar solo pacientes activos
+          </label>
+        </div>
       </div>
 
       <div className="card">
@@ -337,7 +414,10 @@ const Patients = () => {
           <tbody>
             {filteredPatients.length > 0 ? filteredPatients.map(p => (
               <tr key={p.id} style={{ borderBottom: '1px solid var(--soft-gray)', transition: 'background 0.2s' }}>
-                <td style={{ padding: '1rem', fontWeight: 'bold' }}>{p.firstName} {p.lastName}</td>
+                <td style={{ padding: '1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {p.lastName}, {p.firstName}
+                  {p.isInactive && <span style={{ fontSize: '0.7rem', backgroundColor: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>INACTIVO</span>}
+                </td>
                 <td style={{ padding: '1rem' }}>{p.docNumber}</td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontSize: '0.85rem' }}>{p.phone || 'Sin teléfono'}</div>
@@ -376,7 +456,7 @@ const Patients = () => {
             >
               <X size={24} />
             </button>
-            <h2 style={{ marginBottom: '1.5rem', paddingRight: '30px' }}>Actividades - {selectedPatient.firstName} {selectedPatient.lastName}</h2>
+            <h2 style={{ marginBottom: '1.5rem', paddingRight: '30px' }}>Actividades - {selectedPatient.lastName}, {selectedPatient.firstName}</h2>
             
             {/* Activities List */}
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1.5rem', paddingRight: '10px' }}>
