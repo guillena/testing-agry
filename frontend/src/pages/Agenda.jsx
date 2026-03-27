@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import api from '../api';
 import { useAuth } from '../store/AuthContext';
 import { X, Trash2 } from 'lucide-react';
+import MessageModal from '../components/MessageModal';
 
 const Agenda = () => {
   const { user } = useAuth();
@@ -19,6 +20,9 @@ const Agenda = () => {
   // Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [deleteFuture, setDeleteFuture] = useState(false);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
+  const [filterProfessional, setFilterProfessional] = useState('all');
   const [formData, setFormData] = useState({
     patientId: '',
     benefitId: '',
@@ -26,7 +30,8 @@ const Agenda = () => {
     date: '',
     startTime: '',
     endTime: '',
-    notes: ''
+    notes: '',
+    repetitions: 1
   });
 
   useEffect(() => {
@@ -76,6 +81,7 @@ const Agenda = () => {
     const endDate = new Date(startDate.getTime() + 30 * 60000);
 
     setEditingId(null);
+    setDeleteFuture(false);
     setFormData({
       patientId: patients.length > 0 ? patients[0].id : '',
       benefitId: benefits.length > 0 ? benefits[0].id : '',
@@ -83,7 +89,8 @@ const Agenda = () => {
       date: startDate.toISOString().split('T')[0],
       startTime: startDate.toTimeString().substring(0, 5),
       endTime: endDate.toTimeString().substring(0, 5),
-      notes: ''
+      notes: '',
+      repetitions: 1
     });
     setShowModal(true);
   };
@@ -96,6 +103,7 @@ const Agenda = () => {
     const eDate = new Date(app.endTime);
 
     setEditingId(app.id);
+    setDeleteFuture(false);
     setFormData({
       patientId: app.patientId,
       benefitId: app.benefitId,
@@ -103,7 +111,8 @@ const Agenda = () => {
       date: sDate.toISOString().split('T')[0],
       startTime: sDate.toTimeString().substring(0, 5),
       endTime: eDate.toTimeString().substring(0, 5),
-      notes: app.notes || ''
+      notes: app.notes || '',
+      repetitions: 1
     });
     setShowModal(true);
   };
@@ -111,24 +120,33 @@ const Agenda = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Combine date and time
-      const startDateTime = new Date(`${formData.date}T${formData.startTime}:00`);
-      const endDateTime = new Date(`${formData.date}T${formData.endTime}:00`);
+      const reps = editingId ? 1 : parseInt(formData.repetitions, 10) || 1;
+      const promises = [];
 
-      const payload = {
-        patientId: formData.patientId,
-        benefitId: formData.benefitId,
-        professionalId: user.role === 'admin' ? formData.professionalId : user.id,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        notes: formData.notes
-      };
+      for (let i = 0; i < reps; i++) {
+        const currentStartDate = new Date(`${formData.date}T${formData.startTime}:00`);
+        const currentEndDate = new Date(`${formData.date}T${formData.endTime}:00`);
+        
+        currentStartDate.setDate(currentStartDate.getDate() + (i * 7));
+        currentEndDate.setDate(currentEndDate.getDate() + (i * 7));
 
-      if (editingId) {
-        await api.patch(`/appointments/${editingId}`, payload);
-      } else {
-        await api.post('/appointments', payload);
+        const payload = {
+          patientId: formData.patientId,
+          benefitId: formData.benefitId,
+          professionalId: user.role === 'admin' ? formData.professionalId : user.id,
+          startTime: currentStartDate.toISOString(),
+          endTime: currentEndDate.toISOString(),
+          notes: formData.notes
+        };
+
+        if (editingId) {
+          promises.push(api.patch(`/appointments/${editingId}`, payload));
+        } else {
+          promises.push(api.post('/appointments', payload));
+        }
       }
+
+      await Promise.all(promises);
 
       setShowModal(false);
       fetchAppointments();
@@ -137,21 +155,70 @@ const Agenda = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este turno?')) {
-      try {
+  const handleDelete = () => {
+    setConfirmDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    setConfirmDeleteModal(false);
+    try {
+      if (deleteFuture) {
+        const currentApp = events.find(e => e.id === editingId)?.extendedProps;
+        if (currentApp) {
+          const currentStartDate = new Date(currentApp.startTime);
+          const timeString = currentStartDate.toTimeString().substring(0, 5);
+          const dayOfWeek = currentStartDate.getDay();
+          
+          const appsToDelete = events.filter(e => {
+            const app = e.extendedProps;
+            const appDate = new Date(app.startTime);
+            
+            return app.patientId === currentApp.patientId &&
+                   app.benefitId === currentApp.benefitId &&
+                   app.professionalId === currentApp.professionalId &&
+                   appDate >= currentStartDate &&
+                   appDate.getDay() === dayOfWeek &&
+                   appDate.toTimeString().substring(0, 5) === timeString;
+          });
+          
+          const promises = appsToDelete.map(app => api.delete(`/appointments/${app.id}`));
+          await Promise.all(promises);
+        }
+      } else {
         await api.delete(`/appointments/${editingId}`);
-        setShowModal(false);
-        fetchAppointments();
-      } catch (err) {
-        alert('Error al eliminar el turno.');
       }
+      setShowModal(false);
+      fetchAppointments();
+    } catch (err) {
+      alert('Error al eliminar el turno.');
     }
   };
 
+  const displayEvents = filterProfessional === 'all' 
+    ? events 
+    : events.filter(e => e.extendedProps.professionalId?.toString() === filterProfessional.toString());
+
   return (
     <div>
-      <h1 style={{ marginBottom: '2rem' }}>{user.role === 'admin' ? 'Agenda Global' : 'Mi Agenda'}</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ margin: 0 }}>{user.role === 'admin' ? 'Agenda Global' : 'Mi Agenda'}</h1>
+        
+        {user.role === 'admin' && professionals.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+            <label style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#555' }}>Filtrar por profesional:</label>
+            <select 
+              value={filterProfessional}
+              onChange={(e) => setFilterProfessional(e.target.value)}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #ccc', backgroundColor: 'white', minWidth: '200px', cursor: 'pointer' }}
+            >
+              <option value="all">Ver Todos</option>
+              {professionals.map(p => (
+                <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
       
       <div className="card" style={{ padding: '2rem' }}>
         <FullCalendar
@@ -169,12 +236,13 @@ const Agenda = () => {
               buttonText: 'Laboral'
             }
           }}
-          events={events}
+          events={displayEvents}
           dateClick={handleDateClick}
           eventClick={handleEventClick}
           slotMinTime="08:00:00"
           slotMaxTime="20:00:00"
           allDaySlot={false}
+          slotEventOverlap={false}
           locale="es"
           buttonText={{ today: 'Hoy', month: 'Mes', week: 'Semana', workWeek: 'Laboral', day: 'Día' }}
           eventBackgroundColor="var(--salmon)"
@@ -239,7 +307,7 @@ const Agenda = () => {
                 </div>
               )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: editingId ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem' }}>Fecha</label>
                   <input 
@@ -270,6 +338,20 @@ const Agenda = () => {
                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
                   />
                 </div>
+                {!editingId && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.9rem' }}>Repetir</label>
+                    <select 
+                      value={formData.repetitions}
+                      onChange={e => setFormData({...formData, repetitions: e.target.value})}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }}
+                    >
+                      {[...Array(10)].map((_, i) => (
+                        <option key={i + 1} value={i + 1}>{i + 1} {i === 0 ? 'vez' : 'sesiones'}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
@@ -280,6 +362,21 @@ const Agenda = () => {
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
                 />
               </div>
+
+              {editingId && (
+                <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <input 
+                    type="checkbox" 
+                    id="deleteFuture"
+                    checked={deleteFuture}
+                    onChange={(e) => setDeleteFuture(e.target.checked)}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="deleteFuture" style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer' }}>
+                    Al eliminar, borrar también los turnos futuros repetidos
+                  </label>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 {editingId && (
@@ -293,6 +390,16 @@ const Agenda = () => {
           </div>
         </div>
       )}
+
+      <MessageModal 
+        isOpen={confirmDeleteModal}
+        type="info"
+        message={deleteFuture 
+          ? '¿Estás seguro de que deseas eliminar este turno y todos los siguientes repetidos?' 
+          : '¿Estás seguro de que deseas eliminar este turno?'}
+        onClose={executeDelete}
+        onCancel={() => setConfirmDeleteModal(false)}
+      />
 
     </div>
   );
