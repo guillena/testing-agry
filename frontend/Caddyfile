@@ -1,4 +1,16 @@
-:{$PORT:80} {
+{
+	# Disable the Caddy admin API (not needed in production)
+	admin off
+
+	# Log to stdout for Railway log aggregation
+	log {
+		output stdout
+		format console
+		level INFO
+	}
+}
+
+:3000 {
 	root * /app/dist
 
 	# Enable file server
@@ -18,4 +30,10 @@
 
 	# SPA fallback: serve index.html for any path that doesn't match a real file
 	try_files {path} /index.html
+
+	# Log requests
+	log {
+		output stdout
+		format console
+	}
 }
