@@ -89,9 +89,12 @@ const uploadPatientDocument = async (req, res) => {
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
     const url = file.location || `${baseUrl}/uploads/${file.filename}`;
 
+    // Fix filename encoding (Multer handles it as latin1)
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+
     const doc = await PatientDocument.create({
       patientId,
-      originalName: file.originalname,
+      originalName,
       url,
       mimetype: file.mimetype,
       size: file.size

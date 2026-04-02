@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2 } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const provinces = [
@@ -53,6 +53,8 @@ const Patients = () => {
   // Document Viewer state
   const [showingDoc, setShowingDoc] = useState(null);
   const [isDocMaximized, setIsDocMaximized] = useState(false);
+  const [imgZoom, setImgZoom] = useState(1);
+  const [imgRotation, setImgRotation] = useState(0);
 
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
@@ -89,6 +91,14 @@ const Patients = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Manual Validation to prevent "not focusable" error on hidden tabs
+    if (!formData.lastName.trim() || !formData.firstName.trim() || !formData.docNumber.trim() || !formData.phone.trim() || !formData.docTypeId) {
+      setActiveTab('personal');
+      showMsg('Por favor complete todos los campos obligatorios (*).', 'alert');
+      return;
+    }
+
     try {
       if (editingId) {
         await api.patch(`/patients/${editingId}`, formData);
@@ -149,34 +159,46 @@ const Patients = () => {
   };
 
   const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !editingId) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0 || !editingId) return;
 
-    const data = new FormData();
-    data.append('file', file);
+    const uploadFile = async (file) => {
+      const data = new FormData();
+      data.append('file', file);
+      try {
+        const response = await api.post(`/patients/${editingId}/documents`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+      } catch (err) {
+        console.error('Error uploading file:', file.name, err);
+        throw err;
+      }
+    };
 
     try {
-      const response = await api.post(`/patients/${editingId}/documents`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setPatientDocs([...patientDocs, response.data]);
-      showMsg('Documento cargado exitosamente', 'success');
-      // Refresh to update main list
+      const results = await Promise.all(files.map(file => uploadFile(file)));
+      setPatientDocs([...patientDocs, ...results]);
+      // Success message removed as per user request
       fetchPatients();
     } catch (err) {
-      showMsg('Error al subir el documento', 'alert');
+      showMsg('Hubo un error al subir uno o más documentos', 'alert');
+    } finally {
+      // Clear input so same file can be uploaded again if needed
+      e.target.value = '';
     }
   };
 
-  const handleDeleteDoc = async (docId) => {
-    if (!window.confirm('¿Eliminar este documento?')) return;
-    try {
-      await api.delete(`/patients/${editingId}/documents/${docId}`);
-      setPatientDocs(patientDocs.filter(d => d.id !== docId));
-      fetchPatients();
-    } catch (err) {
-      showMsg('Error al eliminar el documento', 'alert');
-    }
+  const handleDeleteDoc = (docId) => {
+    showMsg('¿Está seguro de que desea eliminar este documento?', 'alert', async () => {
+      try {
+        await api.delete(`/patients/${editingId}/documents/${docId}`);
+        setPatientDocs(patientDocs.filter(d => d.id !== docId));
+        fetchPatients();
+      } catch (err) {
+        showMsg('Error al eliminar el documento', 'alert');
+      }
+    });
   };
 
   const handleDownload = async (doc) => {
@@ -345,25 +367,25 @@ const Patients = () => {
               <div style={{ display: activeTab === 'personal' ? 'block' : 'none' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Primer Apellido *</label>
-                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
+                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Primer Apellido *</label>
+                    <input type="text" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nombre *</label>
-                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
+                    <input type="text" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Tipo Doc *</label>
-                    <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.docTypeId} onChange={e => setFormData({...formData, docTypeId: e.target.value})} required>
+                    <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.docTypeId} onChange={e => setFormData({...formData, docTypeId: e.target.value})}>
                       <option value="" disabled>Seleccione...</option>
                       {docTypes && docTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>DNI (8 dígitos) *</label>
-                    <input type="text" required placeholder="Ej: 12345678" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} />
+                    <input type="text" placeholder="Ej: 12345678" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} />
                   </div>
                 </div>
                 <div style={{ marginBottom: '1rem' }}>
@@ -373,7 +395,7 @@ const Patients = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono *</label>
-                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                    <input type="text" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Fecha de Nac.</label>
@@ -443,6 +465,7 @@ const Patients = () => {
                     <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <input 
                         type="file" 
+                        multiple
                         onChange={handleFileUpload} 
                         accept=".pdf,image/*,.doc,.docx,.xls,.xlsx"
                         style={{ display: 'none' }}
@@ -791,6 +814,31 @@ const Patients = () => {
                 {showingDoc.originalName}
               </h3>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {showingDoc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/) && (
+                  <div style={{ display: 'flex', gap: '5px', marginRight: '10px', paddingRight: '10px', borderRight: '1px solid #ddd' }}>
+                    <button 
+                      onClick={() => setImgZoom(prev => Math.min(prev + 0.25, 3))}
+                      style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#555' }}
+                      title="Acercar"
+                    >
+                      <ZoomIn size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setImgZoom(prev => Math.max(prev - 0.25, 0.5))}
+                      style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#555' }}
+                      title="Alejar"
+                    >
+                      <ZoomOut size={18} />
+                    </button>
+                    <button 
+                      onClick={() => setImgRotation(prev => (prev + 90) % 360)}
+                      style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#555' }}
+                      title="Rotar"
+                    >
+                      <RotateCw size={18} />
+                    </button>
+                  </div>
+                )}
                 <button 
                   className="btn btn-primary" 
                   onClick={() => handleDownload(showingDoc)}
@@ -808,7 +856,7 @@ const Patients = () => {
                 </button>
 
                 <button 
-                  onClick={() => { setShowingDoc(null); setIsDocMaximized(false); }}
+                  onClick={() => { setShowingDoc(null); setIsDocMaximized(false); setImgZoom(1); setImgRotation(0); }}
                   style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#ef4444' }}
                 >
                   <X size={18} />
@@ -817,7 +865,7 @@ const Patients = () => {
             </div>
 
             {/* Modal Content - File Preview */}
-            <div style={{ flex: 1, backgroundColor: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ flex: 1, backgroundColor: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', position: 'relative' }}>
               {(() => {
                 // Forcing relative path to use the Vite proxy and avoid CORS/Framing issues in dev
                 const previewUrl = showingDoc.url.replace('http://localhost:5000', '');
@@ -827,7 +875,13 @@ const Patients = () => {
                   return <img 
                     src={previewUrl} 
                     alt={showingDoc.originalName} 
-                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                    style={{ 
+                      maxWidth: imgZoom === 1 ? '100%' : 'none', 
+                      maxHeight: imgZoom === 1 ? '100%' : 'none', 
+                      objectFit: 'contain',
+                      transform: `scale(${imgZoom}) rotate(${imgRotation}deg)`,
+                      transition: 'transform 0.2s ease-in-out'
+                    }} 
                   />;
                 } 
                 
