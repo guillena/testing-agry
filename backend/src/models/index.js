@@ -6,6 +6,7 @@ const Patient = require('./Patient');
 const Appointment = require('./Appointment');
 const ProfessionalBenefits = require('./ProfessionalBenefits');
 const Activity = require('./Activity');
+const PatientDocument = require('./PatientDocument');
 
 // Associations
 
@@ -42,6 +43,10 @@ Appointment.belongsTo(Benefit, { foreignKey: 'benefitId' });
 Patient.hasMany(Activity, { foreignKey: 'patientId', onDelete: 'CASCADE' });
 Activity.belongsTo(Patient, { foreignKey: 'patientId' });
 
+// Patient -> PatientDocument (One-to-Many)
+Patient.hasMany(PatientDocument, { foreignKey: 'patientId', onDelete: 'CASCADE' });
+PatientDocument.belongsTo(Patient, { foreignKey: 'patientId' });
+
 // Professional -> Activity (One-to-Many)
 Professional.hasMany(Activity, { foreignKey: 'professionalId' });
 Activity.belongsTo(Professional, { foreignKey: 'professionalId' });
@@ -53,5 +58,6 @@ module.exports = {
   Professional,
   Patient,
   Appointment,
-  Activity
+  Activity,
+  PatientDocument
 };

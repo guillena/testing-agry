@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const provinces = [
@@ -42,6 +42,14 @@ const Patients = () => {
   const [activities, setActivities] = useState([]);
   const [newActivityDesc, setNewActivityDesc] = useState('');
   
+  // Tabs and Documents state
+  const [activeTab, setActiveTab] = useState('personal');
+  const [patientDocs, setPatientDocs] = useState([]);
+
+  // View Patient state
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingPatient, setViewingPatient] = useState(null);
+
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
 
@@ -113,18 +121,58 @@ const Patients = () => {
       docTypeId: patient.docTypeId || (docTypes.length > 0 ? docTypes[0].id : ''),
       isInactive: patient.isInactive || false
     });
+    setPatientDocs(patient.PatientDocuments || []);
     setEditingId(patient.id);
+    setActiveTab('personal');
     setShowModal(true);
   };
 
   const openCreateModal = () => {
     setEditingId(null);
+    setPatientDocs([]);
     setFormData({
       firstName: '', lastName: '', docNumber: '', email: '', phone: '', birthDate: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '',
       docTypeId: docTypes.length > 0 ? docTypes[0].id : '',
       isInactive: false
     });
+    setActiveTab('personal');
     setShowModal(true);
+  };
+
+  const openViewModal = (patient) => {
+    setViewingPatient(patient);
+    setShowViewModal(true);
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !editingId) return;
+
+    const data = new FormData();
+    data.append('file', file);
+
+    try {
+      const response = await api.post(`/patients/${editingId}/documents`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setPatientDocs([...patientDocs, response.data]);
+      showMsg('Documento cargado exitosamente', 'success');
+      // Refresh to update main list
+      fetchPatients();
+    } catch (err) {
+      showMsg('Error al subir el documento', 'alert');
+    }
+  };
+
+  const handleDeleteDoc = async (docId) => {
+    if (!window.confirm('¿Eliminar este documento?')) return;
+    try {
+      await api.delete(`/patients/${editingId}/documents/${docId}`);
+      setPatientDocs(patientDocs.filter(d => d.id !== docId));
+      fetchPatients();
+    } catch (err) {
+      showMsg('Error al eliminar el documento', 'alert');
+    }
   };
 
   const handleSort = (key) => {
@@ -239,143 +287,170 @@ const Patients = () => {
               <X size={24} />
             </button>
             <h2 style={{ marginBottom: '1.5rem' }}>{editingId ? 'Editar Paciente' : 'Nuevo Paciente'}</h2>
+            
+            {/* Tabs Navigation */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #ddd', marginBottom: '1.5rem', gap: '20px' }}>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('personal')}
+                style={{ background: 'none', border: 'none', padding: '10px 5px', cursor: 'pointer', borderBottom: activeTab === 'personal' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: activeTab === 'personal' ? 'bold' : 'normal', color: activeTab === 'personal' ? 'var(--primary)' : '#666' }}
+              >
+                Datos Personales
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('direction')}
+                style={{ background: 'none', border: 'none', padding: '10px 5px', cursor: 'pointer', borderBottom: activeTab === 'direction' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: activeTab === 'direction' ? 'bold' : 'normal', color: activeTab === 'direction' ? 'var(--primary)' : '#666' }}
+              >
+                Dirección
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('documents')}
+                style={{ background: 'none', border: 'none', padding: '10px 5px', cursor: 'pointer', borderBottom: activeTab === 'documents' ? '2px solid var(--primary)' : '2px solid transparent', fontWeight: activeTab === 'documents' ? 'bold' : 'normal', color: activeTab === 'documents' ? 'var(--primary)' : '#666' }}
+              >
+                Documentos
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Primer Apellido</label>
-                  <input 
-                    type="text" 
-                    required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.lastName}
-                    onChange={e => setFormData({...formData, lastName: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nombre</label>
-                  <input 
-                    type="text" 
-                    required
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.firstName}
-                    onChange={e => setFormData({...formData, firstName: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Tipo Doc</label>
-                  <select 
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }}
-                    value={formData.docTypeId}
-                    onChange={e => setFormData({...formData, docTypeId: e.target.value})}
-                    required
-                  >
-                    <option value="" disabled>Seleccione...</option>
-                    {docTypes && docTypes.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>DNI (8 dígitos)</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Ej: 12345678"
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.docNumber}
-                    onChange={e => setFormData({...formData, docNumber: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Email (Opcional)</label>
-                <input 
-                  type="email" 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono</label>
-                  <input 
-                    type="text" 
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Fecha de Nac. (Opcional)</label>
-                  <input 
-                    type="date" 
-                    max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
-                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                    value={formData.birthDate || ''}
-                    onChange={e => setFormData({...formData, birthDate: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1rem', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #eee' }}>
-                <h3 style={{ fontSize: '0.95rem', borderBottom: '1px solid #e0e0e0', paddingBottom: '8px', marginBottom: '12px', color: '#555' }}>Dirección (Opcional)</h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '1rem', marginBottom: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Calle</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Nro</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.number} onChange={e => setFormData({...formData, number: e.target.value})} />
-                  </div>
-                </div>
-
+              <div style={{ display: activeTab === 'personal' ? 'block' : 'none' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Piso</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} />
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Primer Apellido *</label>
+                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Dto</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.apartment} onChange={e => setFormData({...formData, apartment: e.target.value})} />
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nombre *</label>
+                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} />
                   </div>
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Provincia</label>
-                    <select style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})}>
-                      <option value="">Seleccione...</option>
-                      {provinces.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Tipo Doc *</label>
+                    <select style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.docTypeId} onChange={e => setFormData({...formData, docTypeId: e.target.value})} required>
+                      <option value="" disabled>Seleccione...</option>
+                      {docTypes && docTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Ciudad</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>DNI (8 dígitos) *</label>
+                    <input type="text" required placeholder="Ej: 12345678" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Email</label>
+                  <input type="email" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono *</label>
+                    <input type="text" required style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>C. Postal</label>
-                    <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} />
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Fecha de Nac.</label>
+                    <input type="date" max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.birthDate || ''} onChange={e => setFormData({...formData, birthDate: e.target.value})} />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '2rem' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: '#fdfdfd', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
+                    <input type="checkbox" checked={formData.isInactive} onChange={e => setFormData({...formData, isInactive: e.target.checked})} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                    <span>Deshabilitar Paciente (Inactivo)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ display: activeTab === 'direction' ? 'block' : 'none' }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '70% 30%', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Calle</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Nro</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.number} onChange={e => setFormData({...formData, number: e.target.value})} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Piso</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.floor} onChange={e => setFormData({...formData, floor: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Dto</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.apartment} onChange={e => setFormData({...formData, apartment: e.target.value})} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '0.5rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Provincia</label>
+                      <select style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd', backgroundColor: 'white' }} value={formData.province} onChange={e => setFormData({...formData, province: e.target.value})}>
+                        <option value="">Seleccione...</option>
+                        {provinces.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>Ciudad</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '4px', color: '#666' }}>C. Postal</label>
+                      <input type="text" style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }} value={formData.postalCode} onChange={e => setFormData({...formData, postalCode: e.target.value})} />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '2rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', cursor: 'pointer', backgroundColor: '#fdfdfd', padding: '10px', borderRadius: '8px', border: '1px solid #eee' }}>
-                  <input 
-                    type="checkbox"
-                    checked={formData.isInactive}
-                    onChange={e => setFormData({...formData, isInactive: e.target.checked})}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                  />
-                  <span>Deshabilitar Paciente (Inactivo)</span>
-                </label>
+              <div style={{ display: activeTab === 'documents' ? 'block' : 'none' }}>
+                {!editingId ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '8px', color: '#666' }}>
+                    Para poder cargar documentos, primero debes guardar el perfil de este nuevo paciente.
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input 
+                        type="file" 
+                        onChange={handleFileUpload} 
+                        accept=".pdf,image/*,.doc,.docx,.xls,.xlsx"
+                        style={{ display: 'none' }}
+                        id="patient-file-upload"
+                      />
+                      <label 
+                        htmlFor="patient-file-upload"
+                        className="btn btn-primary"
+                        style={{ cursor: 'pointer', display: 'inline-block', margin: 0 }}
+                      >
+                        Subir Documento
+                      </label>
+                      <span style={{ fontSize: '0.8rem', color: '#888' }}>(PDF, Imágenes, Word, Excel)</span>
+                    </div>
+
+                    <div style={{ border: '1px solid #eee', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                      {patientDocs.length > 0 ? patientDocs.map(doc => (
+                        <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 15px', borderBottom: '1px solid #eee' }}>
+                          <a href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                            {doc.originalName}
+                          </a>
+                          <button type="button" onClick={() => handleDeleteDoc(doc.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )) : (
+                        <div style={{ padding: '1rem', textAlign: 'center', color: '#999', fontSize: '0.9rem' }}>
+                          No hay documentos cargados.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Guardar Paciente</button>
+
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '1.5rem' }}>Guardar Paciente</button>
             </form>
           </div>
         </div>
@@ -456,6 +531,9 @@ const Patients = () => {
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openViewModal(p)} title="Ver Detalles">
+                      <Eye size={18} color="var(--primary)" />
+                    </button>
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleEdit(p)} title="Editar Paciente">
                       <Edit3 size={18} color="var(--salmon)" />
                     </button>
@@ -502,6 +580,9 @@ const Patients = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #eee', paddingTop: '1rem', marginTop: 'auto' }}>
+                <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openViewModal(p)}>
+                  <Eye size={16} color="var(--primary)" /> Ver
+                </button>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => handleEdit(p)}>
                   <Edit3 size={16} color="var(--salmon)" /> Editar
                 </button>
@@ -563,6 +644,75 @@ const Patients = () => {
               </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%', color: 'var(--dark-text)' }}>Agregar Actividad</button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Read-Only Patient View Modal */}
+      {showViewModal && viewingPatient && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button 
+              onClick={() => { setShowViewModal(false); setViewingPatient(null); }}
+              style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem', borderBottom: '2px solid #f0f0f0', paddingBottom: '10px' }}>
+              Detalle del Paciente
+            </h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Personal info section */}
+              <div>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--primary)', marginBottom: '10px' }}>Datos Personales</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px' }}>
+                   <p style={{ margin: 0 }}><strong>Nombre:</strong> {viewingPatient.firstName}</p>
+                   <p style={{ margin: 0 }}><strong>Apellido:</strong> {viewingPatient.lastName}</p>
+                   <p style={{ margin: 0 }}><strong>DNI:</strong> {viewingPatient.docNumber}</p>
+                   <p style={{ margin: 0 }}><strong>Teléfono:</strong> {viewingPatient.phone}</p>
+                   <p style={{ margin: 0 }}><strong>Email:</strong> {viewingPatient.email || 'N/A'}</p>
+                   <p style={{ margin: 0 }}><strong>Fecha de Nac.:</strong> {viewingPatient.birthDate || 'N/A'}</p>
+                   {viewingPatient.isInactive && <p style={{ margin: 0, color: '#ef4444', fontWeight: 'bold', gridColumn: '1 / -1', marginTop: '8px' }}>ESTADO: INACTIVO</p>}
+                </div>
+              </div>
+
+              {/* Address section */}
+              <div>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--primary)', marginBottom: '10px' }}>Dirección</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px' }}>
+                   <p style={{ margin: 0, gridColumn: '1 / -1' }}><strong>Calle y Nro:</strong> {viewingPatient.street || 'N/A'} {viewingPatient.number || ''}</p>
+                   <p style={{ margin: 0 }}><strong>Piso:</strong> {viewingPatient.floor || 'N/A'}</p>
+                   <p style={{ margin: 0 }}><strong>Depto:</strong> {viewingPatient.apartment || 'N/A'}</p>
+                   <p style={{ margin: 0 }}><strong>Ciudad:</strong> {viewingPatient.city || 'N/A'}</p>
+                   <p style={{ margin: 0 }}><strong>Provincia:</strong> {viewingPatient.province || 'N/A'}</p>
+                   <p style={{ margin: 0 }}><strong>C. Postal:</strong> {viewingPatient.postalCode || 'N/A'}</p>
+                </div>
+              </div>
+
+              {/* Documents section */}
+              <div>
+                <h3 style={{ fontSize: '1.1rem', color: 'var(--primary)', marginBottom: '10px' }}>Documentos</h3>
+                <div style={{ border: '1px solid #eee', borderRadius: '8px', padding: '15px', backgroundColor: '#f9f9f9' }}>
+                  {viewingPatient.PatientDocuments && viewingPatient.PatientDocuments.length > 0 ? (
+                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                      {viewingPatient.PatientDocuments.map(doc => (
+                        <li key={doc.id} style={{ marginBottom: '8px' }}>
+                          <a href={doc.url} target="_blank" rel="noreferrer" style={{ color: 'var(--light-blue)', textDecoration: 'none', fontWeight: 'bold' }}>
+                            {doc.originalName}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, color: '#888', fontStyle: 'italic' }}>No hay documentos cargados.</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

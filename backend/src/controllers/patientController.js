@@ -1,4 +1,4 @@
-const { Patient, DocumentType } = require('../models');
+const { Patient, DocumentType, PatientDocument } = require('../models');
 
 const createPatient = async (req, res) => {
   try {
@@ -17,7 +17,10 @@ const createPatient = async (req, res) => {
 const getPatients = async (req, res) => {
   try {
     const patients = await Patient.findAll({
-      include: [{ model: DocumentType }]
+      include: [
+        { model: DocumentType },
+        { model: PatientDocument }
+      ]
     });
     res.send(patients);
   } catch (e) {
@@ -28,7 +31,10 @@ const getPatients = async (req, res) => {
 const getPatient = async (req, res) => {
   try {
     const patient = await Patient.findByPk(req.params.id, {
-      include: [{ model: DocumentType }]
+      include: [
+        { model: DocumentType },
+        { model: PatientDocument }
+      ]
     });
     if (!patient) {
       return res.status(404).send();
@@ -61,4 +67,43 @@ const getDocumentTypes = async (req, res) => {
   }
 };
 
-module.exports = { createPatient, getPatients, getPatient, updatePatient, getDocumentTypes };
+const uploadPatientDocument = async (req, res) => {
+  try {
+    const patientId = req.params.id;
+    const file = req.file;
+    if (!file) {
+      return res.status(400).send({ error: 'No se subió ningún archivo' });
+    }
+
+    // Determine URL (local or cloud)
+    const url = file.location || `/uploads/${file.filename}`;
+
+    const doc = await PatientDocument.create({
+      patientId,
+      originalName: file.originalname,
+      url,
+      mimetype: file.mimetype,
+      size: file.size
+    });
+
+    res.status(201).send(doc);
+  } catch (e) {
+    console.error('Error uploading document:', e);
+    res.status(500).send({ error: 'Failed to save document' });
+  }
+};
+
+const deletePatientDocument = async (req, res) => {
+  try {
+    const { id, docId } = req.params;
+    const doc = await PatientDocument.findOne({ where: { id: docId, patientId: id } });
+    if (!doc) return res.status(404).send();
+    // Todo: delete physical file if needed
+    await doc.destroy();
+    res.send();
+  } catch (e) {
+    res.status(500).send();
+  }
+};
+
+module.exports = { createPatient, getPatients, getPatient, updatePatient, getDocumentTypes, uploadPatientDocument, deletePatientDocument };
