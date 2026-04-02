@@ -86,7 +86,8 @@ const uploadPatientDocument = async (req, res) => {
     }
 
     // Determine URL (local or cloud)
-    const url = file.location || `/uploads/${file.filename}`;
+    const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+    const url = file.location || `${baseUrl}/uploads/${file.filename}`;
 
     const doc = await PatientDocument.create({
       patientId,

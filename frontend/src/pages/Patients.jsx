@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2 } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const provinces = [
@@ -49,6 +49,10 @@ const Patients = () => {
   // View Patient state
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingPatient, setViewingPatient] = useState(null);
+
+  // Document Viewer state
+  const [showingDoc, setShowingDoc] = useState(null);
+  const [isDocMaximized, setIsDocMaximized] = useState(false);
 
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
@@ -172,6 +176,30 @@ const Patients = () => {
       fetchPatients();
     } catch (err) {
       showMsg('Error al eliminar el documento', 'alert');
+    }
+  };
+
+  const handleDownload = async (doc) => {
+    const fullUrl = doc.url.startsWith('http') ? doc.url : `http://localhost:5000${doc.url}`;
+    try {
+      const response = await fetch(fullUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', doc.originalName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      // Fallback to direct link if fetch fails (e.g. CORS)
+      const link = document.createElement('a');
+      link.href = fullUrl;
+      link.setAttribute('download', doc.originalName);
+      link.setAttribute('target', '_blank');
+      link.click();
     }
   };
 
@@ -433,9 +461,13 @@ const Patients = () => {
                     <div style={{ border: '1px solid #eee', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto' }}>
                       {patientDocs.length > 0 ? patientDocs.map(doc => (
                         <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 15px', borderBottom: '1px solid #eee' }}>
-                          <a href={doc.url} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowingDoc(doc)}
+                            style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'left', cursor: 'pointer' }}
+                          >
                             {doc.originalName}
-                          </a>
+                          </button>
                           <button type="button" onClick={() => handleDeleteDoc(doc.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
                             <X size={16} />
                           </button>
@@ -532,10 +564,10 @@ const Patients = () => {
                 <td style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openViewModal(p)} title="Ver Detalles">
-                      <Eye size={18} color="var(--primary)" />
+                      <Eye size={18} color="#4a90e2" />
                     </button>
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleEdit(p)} title="Editar Paciente">
-                      <Edit3 size={18} color="var(--salmon)" />
+                      <Edit3 size={18} color="#4a90e2" />
                     </button>
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openActivities(p)} title="Actividades">
                       <Activity size={18} color="var(--light-blue)" />
@@ -581,10 +613,10 @@ const Patients = () => {
 
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #eee', paddingTop: '1rem', marginTop: 'auto' }}>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openViewModal(p)}>
-                  <Eye size={16} color="var(--primary)" /> Ver
+                  <Eye size={16} color="#4a90e2" /> Ver
                 </button>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => handleEdit(p)}>
-                  <Edit3 size={16} color="var(--salmon)" /> Editar
+                  <Edit3 size={16} color="#4a90e2" /> Editar
                 </button>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openActivities(p)}>
                   <Activity size={16} color="var(--light-blue)" /> Historial
@@ -701,9 +733,13 @@ const Patients = () => {
                     <ul style={{ margin: 0, paddingLeft: '20px' }}>
                       {viewingPatient.PatientDocuments.map(doc => (
                         <li key={doc.id} style={{ marginBottom: '8px' }}>
-                          <a href={doc.url} target="_blank" rel="noreferrer" style={{ color: 'var(--light-blue)', textDecoration: 'none', fontWeight: 'bold' }}>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowingDoc(doc)}
+                            style={{ background: 'none', border: 'none', padding: 0, color: 'var(--light-blue)', textDecoration: 'none', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left' }}
+                          >
                             {doc.originalName}
-                          </a>
+                          </button>
                         </li>
                       ))}
                     </ul>
@@ -728,6 +764,101 @@ const Patients = () => {
           setMsgModal({ ...msgModal, isOpen: false, onConfirm: null });
         }}
       />
+
+      {/* Document Viewer Modal */}
+      {showingDoc && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', 
+          justifyContent: 'center', alignItems: 'center', zIndex: 1100, backdropFilter: 'blur(6px)'
+        }}>
+          <div style={{ 
+            backgroundColor: 'white', 
+            width: isDocMaximized ? '100%' : '90%', 
+            maxWidth: isDocMaximized ? '100%' : '1000px', 
+            height: isDocMaximized ? '100%' : '85vh', 
+            borderRadius: isDocMaximized ? '0' : '16px', 
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            transition: 'all 0.3s ease'
+          }}>
+            {/* Modal Header */}
+            <div style={{ 
+              padding: '0.8rem 1.5rem', borderBottom: '1px solid #eee', display: 'flex', 
+              justifyContent: 'space-between', alignItems: 'center', background: '#fcfcfc'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+                {showingDoc.originalName}
+              </h3>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => handleDownload(showingDoc)}
+                  style={{ padding: '6px 14px', fontSize: '0.85rem' }}
+                >
+                  Descargar
+                </button>
+                
+                <button 
+                  onClick={() => setIsDocMaximized(!isDocMaximized)}
+                  style={{ background: '#f0f0f0', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#555' }}
+                  title={isDocMaximized ? "Achicar" : "Maximizar"}
+                >
+                  {isDocMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                </button>
+
+                <button 
+                  onClick={() => { setShowingDoc(null); setIsDocMaximized(false); }}
+                  style={{ background: '#fee2e2', border: 'none', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', color: '#ef4444' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content - File Preview */}
+            <div style={{ flex: 1, backgroundColor: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' }}>
+              {(() => {
+                // Forcing relative path to use the Vite proxy and avoid CORS/Framing issues in dev
+                const previewUrl = showingDoc.url.replace('http://localhost:5000', '');
+                
+                // Imágenes
+                if (showingDoc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
+                  return <img 
+                    src={previewUrl} 
+                    alt={showingDoc.originalName} 
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                  />;
+                } 
+                
+                // PDF
+                if (showingDoc.url.toLowerCase().endsWith('.pdf')) {
+                  return (
+                    <iframe 
+                      src={previewUrl} 
+                      style={{ width: '100%', height: '100%', border: 'none' }} 
+                      title="PDF Preview"
+                    />
+                  );
+                } 
+
+                // Otros
+                return <div style={{ textAlign: 'center', padding: '3rem', color: 'white' }}>
+                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📄</div>
+                    <p style={{ fontSize: '1.1rem' }}>Vista previa no disponible para este tipo de archivo.</p>
+                    <button 
+                      className="btn btn-primary" 
+                      onClick={() => handleDownload(showingDoc)}
+                      style={{ marginTop: '1.5rem' }}
+                    >
+                      Descargar para ver
+                    </button>
+                  </div>;
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
