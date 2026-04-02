@@ -2,7 +2,12 @@ const { Patient, DocumentType, PatientDocument } = require('../models');
 
 const createPatient = async (req, res) => {
   try {
-    const patient = await Patient.create(req.body);
+    const data = { ...req.body };
+    // Evitar error en PostgreSQL con fechas vacías o inválidas
+    if (data.birthDate === '' || data.birthDate === 'Invalid date') {
+      data.birthDate = null;
+    }
+    const patient = await Patient.create(data);
     res.status(201).send(patient);
   } catch (e) {
     console.error('SERVER ERROR CREATE PATIENT:', e);
@@ -51,7 +56,12 @@ const updatePatient = async (req, res) => {
     if (!patient) {
       return res.status(404).send();
     }
-    await patient.update(req.body);
+    const data = { ...req.body };
+    // Evitar error en PostgreSQL con fechas vacías o inválidas
+    if (data.birthDate === '' || data.birthDate === 'Invalid date') {
+      data.birthDate = null;
+    }
+    await patient.update(data);
     res.send(patient);
   } catch (e) {
     res.status(400).send(e);
