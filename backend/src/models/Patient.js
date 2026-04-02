@@ -28,6 +28,10 @@ const Patient = sequelize.define('Patient', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  birthDate: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
   isInactive: {
     type: DataTypes.BOOLEAN,
     defaultValue: false

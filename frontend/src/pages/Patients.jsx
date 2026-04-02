@@ -20,6 +20,7 @@ const Patients = () => {
     docNumber: '',
     email: '',
     phone: '',
+    birthDate: '',
     street: '',
     number: '',
     floor: '',
@@ -85,7 +86,7 @@ const Patients = () => {
       setShowModal(false);
       setEditingId(null);
       setFormData({
-        firstName: '', lastName: '', docNumber: '', email: '', phone: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '', docTypeId: '', isInactive: false
+        firstName: '', lastName: '', docNumber: '', email: '', phone: '', birthDate: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '', docTypeId: '', isInactive: false
       });
       fetchPatients();
     } catch (err) {
@@ -101,6 +102,7 @@ const Patients = () => {
       docNumber: patient.docNumber,
       email: patient.email || '',
       phone: patient.phone || '',
+      birthDate: patient.birthDate || '',
       street: patient.street || '',
       number: patient.number || '',
       floor: patient.floor || '',
@@ -118,7 +120,7 @@ const Patients = () => {
   const openCreateModal = () => {
     setEditingId(null);
     setFormData({
-      firstName: '', lastName: '', docNumber: '', email: '', phone: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '',
+      firstName: '', lastName: '', docNumber: '', email: '', phone: '', birthDate: '', street: '', number: '', floor: '', apartment: '', province: '', city: '', postalCode: '',
       docTypeId: docTypes.length > 0 ? docTypes[0].id : '',
       isInactive: false
     });
@@ -296,14 +298,26 @@ const Patients = () => {
                   onChange={e => setFormData({...formData, email: e.target.value})}
                 />
               </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono</label>
-                <input 
-                  type="text" 
-                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono</label>
+                  <input 
+                    type="text" 
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Fecha de Nac. (Opcional)</label>
+                  <input 
+                    type="date" 
+                    max={new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }}
+                    value={formData.birthDate || ''}
+                    onChange={e => setFormData({...formData, birthDate: e.target.value})}
+                  />
+                </div>
               </div>
 
               <div style={{ marginBottom: '1rem', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '1px solid #eee' }}>
