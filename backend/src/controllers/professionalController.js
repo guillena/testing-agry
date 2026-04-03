@@ -1,5 +1,8 @@
 const bcrypt = require('bcryptjs');
 const { Professional, Benefit } = require('../models');
+const archiver = require('archiver');
+const fs = require('fs');
+const path = require('path');
 
 const createProfessional = async (req, res) => {
   try {
@@ -108,4 +111,43 @@ const deleteProfessional = async (req, res) => {
   }
 };
 
-module.exports = { createProfessional, getProfessionals, updateProfessional, deleteProfessional };
+const downloadAllFiles = async (req, res) => {
+  try {
+    const now = new Date();
+    const YYYY = now.getFullYear();
+    const MM = String(now.getMonth() + 1).padStart(2, '0');
+    const DD = String(now.getDate()).padStart(2, '0');
+    const HH = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const timestamp = `${YYYY}${MM}${DD}${HH}${mm}`;
+    
+    const fileName = `buketkume${timestamp}.zip`;
+    const uploadDir = path.join(__dirname, '../../uploads');
+
+    if (!fs.existsSync(uploadDir)) {
+      // Create empty zip if no uploads exist
+      console.log('No uploads directory found, skipping file addition');
+    }
+
+    res.attachment(fileName);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      console.error('ARCHIVE ERROR:', err);
+      // We can't send status 500 here if headers were already sent by attachment()
+    });
+
+    archive.pipe(res);
+    if (fs.existsSync(uploadDir)) {
+      archive.directory(uploadDir, false);
+    }
+    await archive.finalize();
+  } catch (e) {
+    console.error('ERROR DOWNLOADING ALL FILES:', e);
+    if (!res.headersSent) {
+      res.status(500).send({ error: 'Error al generar el archivo. Por favor intente nuevamente.' });
+    }
+  }
+};
+
+module.exports = { createProfessional, getProfessionals, updateProfessional, deleteProfessional, downloadAllFiles };

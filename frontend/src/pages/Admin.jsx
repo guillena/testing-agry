@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../api';
-import { Plus, Edit3, Trash2, X, Users, Settings, ChevronUp, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Users, Settings, ChevronUp, ChevronDown, Eye, EyeOff, Folder, Download } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState('professionals'); // 'professionals' or 'benefits'
+  const [activeTab, setActiveTab] = useState('professionals'); // 'professionals', 'benefits' or 'archive'
   
   // State for Professionals
   const [professionals, setProfessionals] = useState([]);
@@ -98,6 +98,34 @@ const Admin = () => {
         }
       }
     );
+  };
+
+  const handleDownloadAll = async () => {
+    try {
+      showMsg('Generando archivo comprimido. La descarga comenzará en breve...', 'info');
+      const response = await api.get('/professionals/download-all', { responseType: 'blob' });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const now = new Date();
+      const YYYY = now.getFullYear();
+      const MM = String(now.getMonth() + 1).padStart(2, '0');
+      const DD = String(now.getDate()).padStart(2, '0');
+      const HH = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const timestamp = `${YYYY}${MM}${DD}${HH}${mm}`;
+      
+      link.setAttribute('download', `buketkume${timestamp}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      showMsg('Error al descargar el archivo del bucket.', 'alert');
+    }
   };
 
   const sortedProfessionals = useMemo(() => {
@@ -221,28 +249,42 @@ const Admin = () => {
       <h1 style={{ marginBottom: '2rem' }}>Panel de Administración</h1>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid var(--soft-gray)' }}>
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '2rem', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
         <button 
-          onClick={() => setActiveTab('professionals')}
+          className={`btn ${activeTab === 'professionals' ? 'btn-primary' : ''}`} 
           style={{ 
-            background: 'none', border: 'none', cursor: 'pointer', padding: '10px 20px', 
-            borderBottom: activeTab === 'professionals' ? '3px solid var(--salmon)' : '3px solid transparent',
-            fontWeight: activeTab === 'professionals' ? 'bold' : 'normal',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            display: 'flex', alignItems: 'center', gap: '8px', 
+            background: activeTab === 'professionals' ? 'var(--primary)' : 'transparent', 
+            color: activeTab === 'professionals' ? 'white' : 'var(--dark)',
+            border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer'
           }}
+          onClick={() => setActiveTab('professionals')}
         >
           <Users size={18} /> Profesionales
         </button>
         <button 
-          onClick={() => setActiveTab('benefits')}
+          className={`btn ${activeTab === 'benefits' ? 'btn-primary' : ''}`} 
           style={{ 
-            background: 'none', border: 'none', cursor: 'pointer', padding: '10px 20px', 
-            borderBottom: activeTab === 'benefits' ? '3px solid var(--salmon)' : '3px solid transparent',
-            fontWeight: activeTab === 'benefits' ? 'bold' : 'normal',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            display: 'flex', alignItems: 'center', gap: '8px', 
+            background: activeTab === 'benefits' ? 'var(--primary)' : 'transparent', 
+            color: activeTab === 'benefits' ? 'white' : 'var(--dark)',
+            border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer'
           }}
+          onClick={() => setActiveTab('benefits')}
         >
           <Settings size={18} /> Prestaciones
+        </button>
+        <button 
+          className={`btn ${activeTab === 'archive' ? 'btn-primary' : ''}`} 
+          style={{ 
+            display: 'flex', alignItems: 'center', gap: '8px', 
+            background: activeTab === 'archive' ? 'var(--primary)' : 'transparent', 
+            color: activeTab === 'archive' ? 'white' : 'var(--dark)',
+            border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer'
+          }}
+          onClick={() => setActiveTab('archive')}
+        >
+          <Folder size={18} /> Archivos
         </button>
       </div>
 
@@ -299,7 +341,7 @@ const Admin = () => {
                       <span style={{ 
                         background: p.role === 'admin' ? 'var(--light-blue)' : 'var(--soft-gray)', 
                         padding: '4px 8px', borderRadius: '12px', fontSize: '0.8rem' 
-                      }}>
+                       }}>
                         {p.role}
                       </span>
                     </td>
@@ -320,6 +362,7 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Benefits Tab */}
         {activeTab === 'benefits' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -372,10 +415,72 @@ const Admin = () => {
             </table>
           </div>
         )}
+
+        {/* Archive Tab (NEW) */}
+        {activeTab === 'archive' && (
+          <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+            <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+              <div style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '50%', 
+                background: '#f0f9ff', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                margin: '0 auto 1.5rem',
+                color: 'var(--primary)'
+              }}>
+                <Folder size={40} />
+              </div>
+              
+              <h2 style={{ marginBottom: '1rem' }}>Respaldo de Documentos</h2>
+              
+              <p style={{ color: '#666', marginBottom: '2rem', lineHeight: '1.6' }}>
+                Desde aquí puede descargar la totalidad de los archivos almacenados en el servidor. 
+                Se generará un archivo comprimido <strong>.zip</strong> respetando la organización original 
+                (carpetas por paciente y sus respectivos documentos).
+              </p>
+
+              <div style={{ 
+                backgroundColor: '#fff9db', 
+                padding: '1rem', 
+                borderRadius: '8px', 
+                border: '1px solid #ffe066',
+                marginBottom: '2rem',
+                fontSize: '0.9rem',
+                color: '#856404',
+                textAlign: 'left'
+              }}>
+                <strong>Nota:</strong> Dependiendo de la cantidad total de archivos, este proceso puede demorar unos segundos mientras se prepara la descarga.
+              </div>
+
+              <button 
+                className="btn btn-primary" 
+                style={{ 
+                  width: '100%', 
+                  padding: '1rem', 
+                  fontSize: '1.1rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  gap: '12px' 
+                }}
+                onClick={handleDownloadAll}
+              >
+                <Download size={22} />
+                Descargar Todo el Bucket
+              </button>
+              
+              <div style={{ marginTop: '1.5rem', fontSize: '0.8rem', opacity: 0.5 }}>
+                El archivo se llamará: buketkumeYYYYMMDDHHMM.zip
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
-      {/* Professional Modal */}
       {showProfModal && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -415,16 +520,8 @@ const Admin = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     style={{
-                      position: 'absolute',
-                      right: '10px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#666',
-                      display: 'flex',
-                      alignItems: 'center'
+                      position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center'
                     }}
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -443,51 +540,29 @@ const Admin = () => {
                 {profForm.role === 'admin' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#95a5a6' }} />
-                    <span style={{ fontSize: '0.8rem', color: '#666' }}>Es gris por defecto para administradores</span>
+                    <span style={{ fontSize: '0.8rem', color: '#666' }}>Gris por defecto para administradores</span>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {[
-                      ['#E3F2FD', '#90CAF9', '#42A5F5', '#1E88E5'], // Azules
-                      ['#E8F5E9', '#A5D6A7', '#66BB6A', '#43A047'], // Verdes
-                      ['#FFF8E1', '#FFE082', '#FFCA28', '#FFB300'], // Amarillos/Naranjas
-                      ['#FFEBEE', '#FFCDD2', '#EF5350', '#E53935'], // Rojos
-                      ['#F3E5F5', '#CE93D8', '#AB47BC', '#8E24AA']  // Morados
-                    ].map((col, colIdx) => (
-                      <div key={colIdx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {col.map(colorHex => (
-                          <div
-                            key={colorHex}
-                            onClick={() => setProfForm({...profForm, color: colorHex})}
-                            style={{
-                              width: '30px', 
-                              height: '30px', 
-                              backgroundColor: colorHex, 
-                              borderRadius: '4px', 
-                              cursor: 'pointer',
-                              border: profForm.color === colorHex ? '3px solid #333' : '1px solid transparent',
-                              transform: profForm.color === colorHex ? 'scale(1.1)' : 'scale(1)',
-                              transition: 'all 0.2s',
-                              boxShadow: profForm.color === colorHex ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
-                            }}
-                            title="Seleccionar color"
-                          />
-                        ))}
-                      </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['#E3F2FD', '#90CAF9', '#42A5F5', '#1976D2', '#E8F5E9', '#A5D6A7', '#66BB6A', '#43A047', '#FFF8E1', '#FFE082', '#FFCA28', '#FFB300', '#FFEBEE', '#FFCDD2', '#EF5350', '#E53935'].map(colorHex => (
+                      <div
+                        key={colorHex}
+                        onClick={() => setProfForm({...profForm, color: colorHex})}
+                        style={{
+                          width: '24px', height: '24px', backgroundColor: colorHex, borderRadius: '4px', cursor: 'pointer',
+                          border: profForm.color === colorHex ? '2px solid #333' : '1px solid #ddd'
+                        }}
+                      />
                     ))}
                   </div>
                 )}
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Prestaciones que brinda</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem' }}>Prestaciones</label>
                 <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', borderRadius: '8px', padding: '10px' }}>
                   {benefits.map(b => (
                     <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', cursor: 'pointer' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={profForm.benefitIds.includes(b.id)} 
-                        onChange={() => toggleBenefitSelection(b.id)} 
-                      />
+                      <input type="checkbox" checked={profForm.benefitIds.includes(b.id)} onChange={() => toggleBenefitSelection(b.id)} />
                       <span style={{ fontSize: '0.9rem' }}>{b.name}</span>
                     </label>
                   ))}
@@ -499,7 +574,6 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Benefit Modal */}
       {showServModal && (
         <div className="modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -510,7 +584,7 @@ const Admin = () => {
             <h2>{editingServId ? 'Editar Prestación' : 'Nueva Prestación'}</h2>
             <form onSubmit={handleServSubmit} style={{ marginTop: '1rem' }}>
               <div style={{ marginBottom: '1rem' }}>
-                <label>Nombre de la Prestación</label>
+                <label>Nombre</label>
                 <input type="text" required className="form-control" style={{ width: '100%', padding: '8px', borderRadius:'8px', border:'1px solid #ddd'}} value={servForm.name} onChange={e => setServForm({...servForm, name: e.target.value})} />
               </div>
               <div style={{ marginBottom: '1.5rem' }}>
@@ -534,7 +608,6 @@ const Admin = () => {
           setMsgModal({ ...msgModal, isOpen: false, onConfirm: null });
         }}
       />
-
     </div>
   );
 };

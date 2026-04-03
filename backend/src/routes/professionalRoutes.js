@@ -1,10 +1,11 @@
 const express = require('express');
-const { createProfessional, getProfessionals, updateProfessional, deleteProfessional } = require('../controllers/professionalController');
+const { createProfessional, getProfessionals, updateProfessional, deleteProfessional, downloadAllFiles } = require('../controllers/professionalController');
 const { auth, isAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 router.post('/', auth, isAdmin, createProfessional);
 router.get('/', auth, isAdmin, getProfessionals);
+router.get('/download-all', auth, isAdmin, downloadAllFiles);
 router.patch('/:id', auth, isAdmin, updateProfessional);
 router.delete('/:id', auth, isAdmin, deleteProfessional);
 
