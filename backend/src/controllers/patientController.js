@@ -85,9 +85,12 @@ const uploadPatientDocument = async (req, res) => {
       return res.status(400).send({ error: 'No se subió ningún archivo' });
     }
 
+    const patient = await Patient.findByPk(patientId);
+    const folderName = patient ? patient.docNumber : patientId;
+
     // Determine URL (local or cloud)
     const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    const url = file.location || `${baseUrl}/uploads/${file.filename}`;
+    const url = file.location || `${baseUrl}/uploads/${folderName}/${file.filename}`;
 
     // Fix filename encoding (Multer handles it as latin1)
     const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
