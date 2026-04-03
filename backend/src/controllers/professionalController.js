@@ -113,34 +113,46 @@ const deleteProfessional = async (req, res) => {
 
 const downloadAllFiles = async (req, res) => {
   try {
+    const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
     const now = new Date();
-    const YYYY = now.getFullYear();
-    const MM = String(now.getMonth() + 1).padStart(2, '0');
-    const DD = String(now.getDate()).padStart(2, '0');
-    const HH = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
-    const timestamp = `${YYYY}${MM}${DD}${HH}${mm}`;
-    
+    const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 12);
     const fileName = `buketkume${timestamp}.zip`;
-    const uploadDir = path.join(__dirname, '../../uploads');
-
-    if (!fs.existsSync(uploadDir)) {
-      // Create empty zip if no uploads exist
-      console.log('No uploads directory found, skipping file addition');
-    }
 
     res.attachment(fileName);
     const archive = archiver('zip', { zlib: { level: 9 } });
-
-    archive.on('error', (err) => {
-      console.error('ARCHIVE ERROR:', err);
-      // We can't send status 500 here if headers were already sent by attachment()
-    });
-
     archive.pipe(res);
-    if (fs.existsSync(uploadDir)) {
-      archive.directory(uploadDir, false);
+
+    if (process.env.BUCKET_NAME) {
+      // --- MODALIDAD S3 (PRODUCCIÓN) ---
+      console.log('[ARCHIVE] Descargando desde S3:', process.env.BUCKET_NAME);
+      const s3 = new S3Client({
+        region: process.env.REGION || 'us-east-1',
+        endpoint: process.env.ENDPOINT,
+        credentials: {
+          accessKeyId: process.env.ACCESS_KEY_ID,
+          secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        },
+        forcePathStyle: true,
+      });
+
+      const listCommand = new ListObjectsV2Command({ Bucket: process.env.BUCKET_NAME });
+      const { Contents } = await s3.send(listCommand);
+
+      if (Contents && Contents.length > 0) {
+        for (const item of Contents) {
+          const getCommand = new GetObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: item.Key });
+          const response = await s3.send(getCommand);
+          archive.append(response.Body, { name: item.Key });
+        }
+      }
+    } else {
+      // --- MODALIDAD LOCAL (DESARROLLO) ---
+      const uploadDir = path.join(__dirname, '../../uploads');
+      if (fs.existsSync(uploadDir)) {
+        archive.directory(uploadDir, false);
+      }
     }
+
     await archive.finalize();
   } catch (e) {
     console.error('ERROR DOWNLOADING ALL FILES:', e);
