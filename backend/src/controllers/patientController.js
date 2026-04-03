@@ -1,6 +1,7 @@
 const { Patient, DocumentType, PatientDocument } = require('../models');
 const fs = require('fs');
 const path = require('path');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 const createPatient = async (req, res) => {
   try {
@@ -180,4 +181,72 @@ const deletePatient = async (req, res) => {
   }
 };
 
-module.exports = { createPatient, getPatients, getPatient, updatePatient, getDocumentTypes, uploadPatientDocument, deletePatientDocument, deletePatient };
+const getPatientDocument = async (req, res) => {
+  try {
+    const { docId } = req.params;
+    const doc = await PatientDocument.findByPk(docId);
+    
+    if (!doc) {
+      return res.status(404).send({ error: 'Documento no encontrado' });
+    }
+
+    // Determine type for correct response headers
+    const contentType = doc.url.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.originalName)}"`);
+
+    if (process.env.BUCKET_NAME) {
+      // --- MODALIDAD S3 (PRODUCCIÓN) ---
+      const s3 = new S3Client({
+        region: process.env.REGION || 'us-east-1',
+        endpoint: process.env.ENDPOINT,
+        credentials: {
+          accessKeyId: process.env.ACCESS_KEY_ID,
+          secretAccessKey: process.env.SECRET_ACCESS_KEY,
+        },
+        forcePathStyle: true,
+      });
+
+      // Extract key from URL
+      const urlObj = new URL(doc.url);
+      const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
+      
+      const command = new GetObjectCommand({
+        Bucket: process.env.BUCKET_NAME,
+        Key: decodeURIComponent(key)
+      });
+
+      const s3Response = await s3.send(command);
+      s3Response.Body.pipe(res);
+    } else {
+      // --- MODALIDAD LOCAL (DESARROLLO) ---
+      // Convert URL to local path
+      const baseUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+      const relativePath = doc.url.replace(baseUrl, '').replace('/uploads/', '');
+      const localPath = path.join(__dirname, '../../uploads', relativePath);
+      
+      if (fs.existsSync(localPath)) {
+        fs.createReadStream(localPath).pipe(res);
+      } else {
+        res.status(404).send({ error: 'Archivo local no encontrado' });
+      }
+    }
+  } catch (e) {
+    console.error('ERROR VIEWING DOCUMENT:', e);
+    if (!res.headersSent) {
+      res.status(500).send({ error: 'Error al obtener el documento' });
+    }
+  }
+};
+
+module.exports = {
+  createPatient,
+  getPatients,
+  getPatient,
+  updatePatient,
+  getDocumentTypes,
+  uploadPatientDocument,
+  deletePatientDocument,
+  deletePatient,
+  getPatientDocument
+};

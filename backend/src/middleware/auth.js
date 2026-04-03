@@ -3,7 +3,15 @@ const Professional = require('../models/Professional');
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization').replace('Bearer ', '');
+    let token;
+    if (req.header('Authorization')) {
+      token = req.header('Authorization').replace('Bearer ', '');
+    } else if (req.query.token) {
+      token = req.query.token;
+    }
+
+    if (!token) throw new Error('No token provided');
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const professional = await Professional.findOne({ where: { id: decoded.id } });
 

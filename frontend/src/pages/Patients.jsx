@@ -928,8 +928,8 @@ const Patients = () => {
             {/* Modal Content - File Preview */}
             <div style={{ flex: 1, backgroundColor: '#525659', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', position: 'relative' }}>
               {(() => {
-                // Forcing relative path to use the Vite proxy and avoid CORS/Framing issues in dev
-                const previewUrl = showingDoc.url.replace('http://localhost:5000', '');
+                // Using the specific backend document viewing route which handles S3/Local automatically
+                const previewUrl = `${api.defaults.baseURL}/patients/document/${showingDoc.id}/view?token=${localStorage.getItem('token')}`;
                 
                 // Imágenes
                 if (showingDoc.url.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/)) {
