@@ -85,6 +85,21 @@ const Admin = () => {
     setProfSortConfig({ key, direction });
   };
 
+  const handleProfDelete = async (id) => {
+    showMsg(
+      '¿Estás seguro de que quieres eliminar este profesional? Esta acción no se puede deshacer.', 
+      'info', 
+      async () => {
+        try {
+          await api.delete(`/professionals/${id}`);
+          fetchProfessionals();
+        } catch (err) {
+          showMsg('Error al eliminar profesional.', 'alert');
+        }
+      }
+    );
+  };
+
   const sortedProfessionals = useMemo(() => {
     const sortableItems = [...professionals];
     if (profSortConfig.key !== null) {
@@ -289,9 +304,14 @@ const Admin = () => {
                       </span>
                     </td>
                     <td style={{ padding: '1rem' }}>
-                      <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openProfModal(p)}>
-                        <Edit3 size={18} color="var(--salmon)" />
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openProfModal(p)}>
+                          <Edit3 size={18} color="var(--salmon)" />
+                        </button>
+                        <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleProfDelete(p.id)}>
+                          <Trash2 size={18} color="#e74c3c" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

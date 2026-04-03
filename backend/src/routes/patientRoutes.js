@@ -1,6 +1,6 @@
 const express = require('express');
-const { createPatient, getPatients, getPatient, updatePatient, getDocumentTypes, uploadPatientDocument, deletePatientDocument } = require('../controllers/patientController');
-const { auth } = require('../middleware/auth');
+const { createPatient, getPatients, getPatient, updatePatient, getDocumentTypes, uploadPatientDocument, deletePatientDocument, deletePatient } = require('../controllers/patientController');
+const { auth, isAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 const router = express.Router();
 
@@ -9,6 +9,7 @@ router.get('/', auth, getPatients);
 router.get('/document-types', auth, getDocumentTypes);
 router.get('/:id', auth, getPatient);
 router.patch('/:id', auth, updatePatient);
+router.delete('/:id', auth, isAdmin, deletePatient);
 
 // Document handling endpoints
 router.post('/:id/documents', auth, upload.single('file'), uploadPatientDocument);

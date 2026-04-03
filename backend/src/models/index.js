@@ -28,7 +28,7 @@ DocumentType.hasMany(Patient, { foreignKey: 'docTypeId' });
 Patient.belongsTo(DocumentType, { foreignKey: 'docTypeId' });
 
 // Patient -> Appointment (One-to-Many)
-Patient.hasMany(Appointment, { foreignKey: 'patientId' });
+Patient.hasMany(Appointment, { foreignKey: 'patientId', onDelete: 'CASCADE' });
 Appointment.belongsTo(Patient, { foreignKey: 'patientId' });
 
 // Professional -> Appointment (One-to-Many)

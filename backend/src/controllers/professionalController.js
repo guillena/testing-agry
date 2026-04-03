@@ -94,4 +94,18 @@ const updateProfessional = async (req, res) => {
   }
 };
 
-module.exports = { createProfessional, getProfessionals, updateProfessional };
+const deleteProfessional = async (req, res) => {
+  try {
+    const professional = await Professional.findByPk(req.params.id);
+    if (!professional) {
+      return res.status(404).send({ error: 'Profesional no encontrado' });
+    }
+    await professional.destroy();
+    res.send({ message: 'Profesional eliminado' });
+  } catch (e) {
+    console.error('SERVER ERROR DELETE PROF:', e);
+    res.status(500).send({ error: 'Error al eliminar profesional' });
+  }
+};
+
+module.exports = { createProfessional, getProfessionals, updateProfessional, deleteProfessional };

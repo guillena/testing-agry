@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw, FileText } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw, FileText, Trash2 } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
+import { useAuth } from '../store/AuthContext';
 
 const provinces = [
   'Buenos Aires', 'CABA', 'Catamarca', 'Chaco', 'Chubut', 'Córdoba', 'Corrientes', 'Entre Ríos', 
@@ -10,6 +11,8 @@ const provinces = [
 ];
 
 const Patients = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -157,6 +160,21 @@ const Patients = () => {
   const openViewModal = (patient) => {
     setViewingPatient(patient);
     setShowViewModal(true);
+  };
+
+  const handleDeletePatient = async (id) => {
+    showMsg(
+      '¿Está seguro de que desea eliminar permanentemente a este paciente? Se borrará TODO su historial y todos los archivos adjuntos.', 
+      'info', 
+      async () => {
+        try {
+          await api.delete(`/patients/${id}`);
+          fetchPatients();
+        } catch (err) {
+          showMsg('Error al eliminar el paciente. No tiene permisos suficientes o ocurrió un error en el servidor.', 'alert');
+        }
+      }
+    );
   };
 
   const handleFileUpload = async (e) => {
@@ -622,6 +640,11 @@ const Patients = () => {
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleEdit(p)} title="Editar Paciente">
                       <Edit3 size={18} color="#4a90e2" />
                     </button>
+                    {isAdmin && (
+                      <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => handleDeletePatient(p.id)} title="Borrar Paciente">
+                        <Trash2 size={18} color="#ef4444" />
+                      </button>
+                    )}
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openActivities(p)} title="Actividades">
                       <Activity size={18} color="var(--light-blue)" />
                     </button>
