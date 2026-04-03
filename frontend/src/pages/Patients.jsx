@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw, FileText } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 
 const provinces = [
@@ -55,6 +55,7 @@ const Patients = () => {
   const [isDocMaximized, setIsDocMaximized] = useState(false);
   const [imgZoom, setImgZoom] = useState(1);
   const [imgRotation, setImgRotation] = useState(0);
+  const [isConformityChecked, setIsConformityChecked] = useState(false);
 
   // State for Global Messages
   const [msgModal, setMsgModal] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null });
@@ -165,6 +166,7 @@ const Patients = () => {
     const uploadFile = async (file) => {
       const data = new FormData();
       data.append('file', file);
+      data.append('isConformity', isConformityChecked);
       try {
         const response = await api.post(`/patients/${editingId}/documents`, data, {
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -186,6 +188,7 @@ const Patients = () => {
     } finally {
       // Clear input so same file can be uploaded again if needed
       e.target.value = '';
+      setIsConformityChecked(false);
     }
   };
 
@@ -479,18 +482,35 @@ const Patients = () => {
                         Subir Documento
                       </label>
                       <span style={{ fontSize: '0.8rem', color: '#888' }}>(PDF, Imágenes, Word, Excel)</span>
+                      
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', cursor: 'pointer', background: '#f0f9ff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #bae6fd', color: '#0369a1', marginLeft: 'auto' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isConformityChecked}
+                          onChange={(e) => setIsConformityChecked(e.target.checked)}
+                          style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <span>¿Es Certificado de Conformidad?</span>
+                      </label>
                     </div>
 
                     <div style={{ border: '1px solid #eee', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto' }}>
                       {patientDocs.length > 0 ? patientDocs.map(doc => (
-                        <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 15px', borderBottom: '1px solid #eee' }}>
-                          <button 
-                            type="button" 
-                            onClick={() => setShowingDoc(doc)}
-                            style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'left', cursor: 'pointer' }}
-                          >
-                            {doc.originalName}
-                          </button>
+                        <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 15px', borderBottom: '1px solid #eee', backgroundColor: doc.isConformity ? '#f0f9ff' : 'white' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <button 
+                              type="button" 
+                              onClick={() => setShowingDoc(doc)}
+                              style={{ background: 'none', border: 'none', padding: 0, textDecoration: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '0.9rem', textAlign: 'left', cursor: 'pointer' }}
+                            >
+                              {doc.originalName}
+                            </button>
+                            {doc.isConformity && (
+                              <span style={{ fontSize: '0.7rem', background: '#0369a1', color: 'white', padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                                C. Conformidad
+                              </span>
+                            )}
+                          </div>
                           <button type="button" onClick={() => handleDeleteDoc(doc.id)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
                             <X size={16} />
                           </button>
@@ -569,6 +589,7 @@ const Patients = () => {
               <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('phone')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Contacto {getSortIcon('phone')}</div>
               </th>
+              <th style={{ padding: '1rem', textAlign: 'center', whiteSpace: 'nowrap' }}>C.Inf.</th>
               <th style={{ padding: '1rem' }}>Acciones</th>
             </tr>
           </thead>
@@ -583,6 +604,15 @@ const Patients = () => {
                 <td style={{ padding: '1rem' }}>
                   <div style={{ fontSize: '0.85rem' }}>{p.phone || 'Sin teléfono'}</div>
                   <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{p.email || 'Sin email'}</div>
+                </td>
+                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                  {p.PatientDocuments?.some(d => d.isConformity) ? (
+                    <div title="Certificado Cargado">
+                      <FileText size={20} color="#0369a1" style={{ margin: 'auto' }} />
+                    </div>
+                  ) : (
+                    <span style={{ opacity: 0.2 }}>-</span>
+                  )}
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -626,6 +656,9 @@ const Patients = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
                   <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Email:</span> {p.email || 'N/A'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
+                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>C. Inf.:</span> {p.PatientDocuments?.some(d => d.isConformity) ? '✅ Cargado' : '❌ Pendiente'}
                 </div>
                 {(p.city || p.province || p.street) && (
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', color: '#555', fontSize: '0.9rem' }}>
@@ -755,7 +788,7 @@ const Patients = () => {
                   {viewingPatient.PatientDocuments && viewingPatient.PatientDocuments.length > 0 ? (
                     <ul style={{ margin: 0, paddingLeft: '20px' }}>
                       {viewingPatient.PatientDocuments.map(doc => (
-                        <li key={doc.id} style={{ marginBottom: '8px' }}>
+                        <li key={doc.id} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <button 
                             type="button" 
                             onClick={() => setShowingDoc(doc)}
@@ -763,6 +796,11 @@ const Patients = () => {
                           >
                             {doc.originalName}
                           </button>
+                          {doc.isConformity && (
+                            <span style={{ fontSize: '0.65rem', background: '#0369a1', color: 'white', padding: '1px 6px', borderRadius: '8px', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                               C. Conformidad
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>

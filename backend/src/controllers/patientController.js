@@ -100,7 +100,8 @@ const uploadPatientDocument = async (req, res) => {
       originalName,
       url,
       mimetype: file.mimetype,
-      size: file.size
+      size: file.size,
+      isConformity: req.body.isConformity === 'true' || req.body.isConformity === true
     });
 
     res.status(201).send(doc);

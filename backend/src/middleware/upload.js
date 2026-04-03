@@ -3,7 +3,7 @@ const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
 const fs = require('fs');
 const path = require('path');
-const Patient = require('../models/Patient');
+const { Patient } = require('../models');
 
 // Determinamos si usamos S3 basado en si BUCKET_NAME está definido en .env (o inyectado en Railway)
 const useS3 = !!process.env.BUCKET_NAME;
@@ -31,12 +31,12 @@ if (useS3) {
       cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-      const { patientId } = req.params;
-      Patient.findByPk(patientId).then(patient => {
-        const folderName = patient ? patient.docNumber : patientId;
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-        cb(null, `${folderName}/${file.fieldname}-${uniqueSuffix}${ext}`);
+      const { id } = req.params;
+      Patient.findByPk(id).then(patient => {
+        const folderName = patient ? patient.docNumber : id;
+        // Keep original name but prepend a timestamp to avoid collisions
+        const fileName = `${Date.now()}-${file.originalname}`;
+        cb(null, `${folderName}/${fileName}`);
       }).catch(err => cb(err));
     }
   });
@@ -52,9 +52,9 @@ if (useS3) {
 
   storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      const { patientId } = req.params;
-      Patient.findByPk(patientId).then(patient => {
-        const folderName = patient ? patient.docNumber : patientId;
+      const { id } = req.params;
+      Patient.findByPk(id).then(patient => {
+        const folderName = patient ? patient.docNumber : id;
         const patientDir = path.join(uploadDir, folderName);
         if (!fs.existsSync(patientDir)){
             fs.mkdirSync(patientDir, { recursive: true });
@@ -63,10 +63,9 @@ if (useS3) {
       }).catch(err => cb(err));
     },
     filename: function (req, file, cb) {
-      // Nombre único en el disco local
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-      const ext = path.extname(file.originalname);
-      cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
+      // Keep original name but prepend a timestamp to avoid collisions
+      const fileName = `${Date.now()}-${file.originalname}`;
+      cb(null, fileName);
     }
   });
   console.log('[Storage] Usando almacenamiento en Disco Local (/uploads)');

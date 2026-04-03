@@ -26,6 +26,10 @@ const PatientDocument = sequelize.define('PatientDocument', {
   size: {
     type: DataTypes.INTEGER,
     allowNull: true
+  },
+  isConformity: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 });
 
