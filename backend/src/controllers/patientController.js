@@ -1,4 +1,4 @@
-const { Patient, DocumentType, PatientDocument } = require('../models');
+const { Patient, DocumentType, PatientDocument, Appointment, Activity } = require('../models');
 const fs = require('fs');
 const path = require('path');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
@@ -148,34 +148,68 @@ const deletePatientDocument = async (req, res) => {
 
 const deletePatient = async (req, res) => {
   try {
-    const patient = await Patient.findByPk(req.params.id);
+    const { id } = req.params;
+    const patient = await Patient.findByPk(id, {
+      include: [{ model: PatientDocument }]
+    });
+    
     if (!patient) return res.status(404).send({ error: 'Paciente no encontrado' });
 
-    // Store folder name before deleting from DB
     const folderName = patient.docNumber;
 
-    // 1. Delete from DB (Associations should handle CASCADE for PatientDocuments, Appointments, etc)
-    await patient.destroy();
+    // 1. Delete Documents from S3 / Local
+    if (patient.PatientDocuments && patient.PatientDocuments.length > 0) {
+      if (process.env.BUCKET_NAME) {
+        // --- MODALIDAD S3 ---
+        const { DeleteObjectsCommand } = require('@aws-sdk/client-s3');
+        const s3 = new S3Client({
+          region: process.env.REGION || 'us-east-1',
+          endpoint: process.env.ENDPOINT,
+          credentials: {
+            accessKeyId: process.env.ACCESS_KEY_ID,
+            secretAccessKey: process.env.SECRET_ACCESS_KEY,
+          },
+          forcePathStyle: true,
+        });
 
-    // 2. Delete physical files (only for local storage)
-    const uploadDir = path.join(__dirname, '../../uploads');
-    const patientDir = path.join(uploadDir, folderName);
-    
-    if (fs.existsSync(patientDir)) {
-      try {
-        fs.rmSync(patientDir, { recursive: true, force: true });
-        console.log(`Successfully deleted physical folder for patient ${folderName}`);
-      } catch (err) {
-        console.error(`Warning: Could not delete physical folder ${patientDir}:`, err);
-        // We don't fail the request here because the DB is already clean
+        const keysToDelete = patient.PatientDocuments.map(doc => {
+          try {
+            const urlObj = new URL(doc.url);
+            const key = urlObj.pathname.startsWith('/') ? urlObj.pathname.substring(1) : urlObj.pathname;
+            return { Key: decodeURIComponent(key) };
+          } catch (e) { return null; }
+        }).filter(item => item !== null);
+
+        if (keysToDelete.length > 0) {
+          const deleteCommand = new DeleteObjectsCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Delete: { Objects: keysToDelete }
+          });
+          await s3.send(deleteCommand).catch(err => console.error('S3 Delete Warning:', err));
+        }
+      }
+      
+      // Cleanup local folder if it exists
+      const uploadDir = path.join(__dirname, '../../uploads');
+      const patientDir = path.join(uploadDir, folderName);
+      if (fs.existsSync(patientDir)) {
+        try { fs.rmSync(patientDir, { recursive: true, force: true }); } catch (e) {}
       }
     }
+
+    // 2. Manually delete associations (Safer for some DB constraints)
+    await Appointment.destroy({ where: { patientId: id } });
+    await Activity.destroy({ where: { patientId: id } });
+    await PatientDocument.destroy({ where: { patientId: id } });
+
+    // 3. Final Patient Delete
+    await patient.destroy();
     
     res.send({ message: 'Paciente eliminado exitosamente' });
   } catch (e) {
     console.error('SERVER ERROR DELETE PATIENT:', e);
     res.status(500).send({ 
-      error: 'Error al eliminar el paciente. Posiblemente tenga registros vinculados.',
+      error: 'Error al eliminar el paciente. No tiene permisos suficientes o tiene registros vinculados de forma estricta.',
       details: e.message 
     });
   }

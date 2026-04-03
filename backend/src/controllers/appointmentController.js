@@ -94,4 +94,27 @@ const deleteAppointment = async (req, res) => {
   }
 };
 
-module.exports = { createAppointment, getAppointments, updateAppointment, deleteAppointment };
+const getPatientAppointments = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const appointments = await Appointment.findAll({
+      where: { patientId },
+      include: [
+        { model: Professional, attributes: ['firstName', 'lastName'] },
+        { model: Benefit, attributes: ['name'] }
+      ],
+      order: [['startTime', 'DESC']]
+    });
+    res.send(appointments);
+  } catch (e) {
+    res.status(500).send(e);
+  }
+};
+
+module.exports = { 
+  createAppointment, 
+  getAppointments, 
+  updateAppointment, 
+  deleteAppointment,
+  getPatientAppointments
+};

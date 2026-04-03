@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw, FileText, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Edit3, X, ArrowUpDown, ArrowUp, ArrowDown, Activity, List, Grid, Eye, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCw, FileText, Trash2, Calendar } from 'lucide-react';
 import MessageModal from '../components/MessageModal';
 import { useAuth } from '../store/AuthContext';
 
@@ -14,6 +14,7 @@ const Patients = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [patients, setPatients] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [docTypes, setDocTypes] = useState([]);
@@ -45,6 +46,11 @@ const Patients = () => {
   const [activities, setActivities] = useState([]);
   const [newActivityDesc, setNewActivityDesc] = useState('');
   
+  // State for Sessions (Appointments)
+  const [showSessionsModal, setShowSessionsModal] = useState(false);
+  const [patientSessions, setPatientSessions] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  
   // Tabs and Documents state
   const [activeTab, setActiveTab] = useState('personal');
   const [patientDocs, setPatientDocs] = useState([]);
@@ -73,11 +79,14 @@ const Patients = () => {
   }, []);
 
   const fetchPatients = async () => {
+    setIsLoading(true);
     try {
       const response = await api.get('/patients');
       setPatients(response.data);
     } catch (err) {
       console.error('Error fetching patients', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -167,11 +176,14 @@ const Patients = () => {
       '¿Está seguro de que desea eliminar permanentemente a este paciente? Se borrará TODO su historial y todos los archivos adjuntos.', 
       'info', 
       async () => {
+        setIsLoading(true);
         try {
           await api.delete(`/patients/${id}`);
-          fetchPatients();
+          await fetchPatients();
         } catch (err) {
           showMsg('Error al eliminar el paciente. No tiene permisos suficientes o ocurrió un error en el servidor.', 'alert');
+        } finally {
+          setIsLoading(false);
         }
       }
     );
@@ -321,6 +333,20 @@ const Patients = () => {
       setNewActivityDesc('');
     } catch (err) {
       showMsg('Error al agregar actividad.', 'alert');
+    }
+  };
+
+  const openSessions = async (patient) => {
+    setSelectedPatient(patient);
+    setIsLoadingSessions(true);
+    try {
+      const response = await api.get(`/appointments/patient/${patient.id}`);
+      setPatientSessions(response.data);
+      setShowSessionsModal(true);
+    } catch (err) {
+      showMsg('Error al cargar las sesiones.', 'alert');
+    } finally {
+      setIsLoadingSessions(false);
     }
   };
 
@@ -593,7 +619,16 @@ const Patients = () => {
         </div>
       </div>
 
-      {viewMode === 'list' ? (
+      {isLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 0', background: 'white', borderRadius: '12px', border: '1px solid #eee' }}>
+          <div style={{
+            width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid var(--primary)',
+            borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem'
+          }}></div>
+          <span style={{ color: '#666', fontWeight: '500' }}>Cargando pacientes...</span>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : viewMode === 'list' ? (
         <div className="card">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -645,6 +680,9 @@ const Patients = () => {
                         <Trash2 size={18} color="#ef4444" />
                       </button>
                     )}
+                    <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openSessions(p)} title="Ver Sesiones">
+                      <Calendar size={18} color="var(--primary)" />
+                    </button>
                     <button className="btn" style={{ padding: '6px', background: 'transparent' }} onClick={() => openActivities(p)} title="Actividades">
                       <Activity size={18} color="var(--light-blue)" />
                     </button>
@@ -696,6 +734,9 @@ const Patients = () => {
                 </button>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => handleEdit(p)}>
                   <Edit3 size={16} color="#4a90e2" /> Editar
+                </button>
+                <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openSessions(p)}>
+                  <Calendar size={16} color="var(--primary)" /> Sesiones
                 </button>
                 <button className="btn" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '8px', border: '1px solid #eee', background: '#fcfcfc', color: '#555' }} onClick={() => openActivities(p)}>
                   <Activity size={16} color="var(--light-blue)" /> Historial
@@ -970,6 +1011,73 @@ const Patients = () => {
                     </button>
                   </div>;
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sessions (Appointments) Modal */}
+      {showSessionsModal && selectedPatient && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '700px', position: 'relative', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <button 
+              onClick={() => { setShowSessionsModal(false); setSelectedPatient(null); }}
+              style={{ position: 'absolute', right: '20px', top: '20px', background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            <h2 style={{ marginBottom: '1.5rem', paddingRight: '40px' }}>
+               Sesiones del paciente - {selectedPatient.lastName}, {selectedPatient.firstName}
+            </h2>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+              {isLoadingSessions ? (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>Cargando sesiones...</div>
+              ) : patientSessions.length > 0 ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', borderBottom: '2px solid #eee' }}>
+                      <th style={{ padding: '12px' }}>Fecha</th>
+                      <th style={{ padding: '12px' }}>Hora</th>
+                      <th style={{ padding: '12px' }}>Profesional</th>
+                      <th style={{ padding: '12px' }}>Prestación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {patientSessions.map(session => {
+                      const sessionDate = new Date(session.startTime);
+                      const isExpired = sessionDate < new Date();
+                      
+                      return (
+                        <tr key={session.id} style={{ 
+                          borderBottom: '1px solid #f5f5f5',
+                          backgroundColor: isExpired ? '#fcfcfc' : '#f0f9ff'
+                        }}>
+                          <td style={{ padding: '12px', color: isExpired ? '#999' : '#333', fontWeight: isExpired ? 'normal' : 'bold' }}>
+                            {sessionDate.toLocaleDateString()}
+                          </td>
+                          <td style={{ padding: '12px', color: isExpired ? '#999' : '#333' }}>
+                            {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td style={{ padding: '12px', color: isExpired ? '#999' : '#333' }}>
+                            {session.Professional?.firstName} {session.Professional?.lastName}
+                          </td>
+                          <td style={{ padding: '12px', color: isExpired ? '#999' : '#333' }}>
+                            {session.Benefit?.name}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#999' }}>
+                  No se registraron sesiones para este paciente.
+                </div>
+              )}
             </div>
           </div>
         </div>

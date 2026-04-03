@@ -8,6 +8,7 @@ const Admin = () => {
   
   // State for Professionals
   const [professionals, setProfessionals] = useState([]);
+  const [isLoadingProfs, setIsLoadingProfs] = useState(false);
   const [showProfModal, setShowProfModal] = useState(false);
   const [editingProfId, setEditingProfId] = useState(null);
   const [profForm, setProfForm] = useState({ firstName: '', lastName: '', username: '', password: '', role: 'professional', color: '#b9d3fd', benefitIds: [] });
@@ -35,10 +36,12 @@ const Admin = () => {
 
   // --- Professionals Methods ---
   const fetchProfessionals = async () => {
+    setIsLoadingProfs(true);
     try {
       const { data } = await api.get('/professionals');
       setProfessionals(data);
     } catch (err) { console.error(err); }
+    finally { setIsLoadingProfs(false); }
   };
 
   const handleProfSubmit = async (e) => {
@@ -289,7 +292,21 @@ const Admin = () => {
       </div>
 
       {/* Content */}
-      <div className="card">
+      <div className="card" style={{ position: 'relative' }}>
+        {isLoadingProfs && activeTab === 'professionals' && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(255,255,255,0.6)', display: 'flex', flexDirection: 'column',
+            justifyContent: 'center', alignItems: 'center', zIndex: 10, borderRadius: '12px'
+          }}>
+            <div style={{
+              width: '40px', height: '40px', border: '4px solid #f3f3f3', borderTop: '4px solid var(--primary)',
+              borderRadius: '50%', animation: 'spin-prof 1s linear infinite', marginBottom: '1rem'
+            }}></div>
+            <span style={{ color: '#666', fontWeight: '500' }}>Cargando profesionales...</span>
+            <style>{`@keyframes spin-prof { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
         {activeTab === 'professionals' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
