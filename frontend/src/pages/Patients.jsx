@@ -473,7 +473,14 @@ const Patients = () => {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nro. de Documento *</label>
-                    <input type="text" placeholder="Ej: 12345678" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} />
+                    <input 
+                      type="text" 
+                      placeholder="Ej: 12.345.678" 
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} 
+                      value={formData.docNumber} 
+                      onChange={e => setFormData({...formData, docNumber: e.target.value})} 
+                      onBlur={e => setFormData({...formData, docNumber: formatDocument(e.target.value.replace(/\D/g, ''))})}
+                    />
                   </div>
                 </div>
                 <div style={{ marginBottom: '1rem' }}>
@@ -483,7 +490,13 @@ const Patients = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Teléfono *</label>
-                    <input type="text" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                    <input 
+                      type="text" 
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} 
+                      value={formData.phone} 
+                      onChange={e => setFormData({...formData, phone: e.target.value})} 
+                      onBlur={e => setFormData({...formData, phone: formatPhone(e.target.value)})}
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Fecha de Nac.</label>
