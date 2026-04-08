@@ -10,6 +10,47 @@ const provinces = [
   'Salta', 'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe', 'Santiago del Estero', 'Tierra del Fuego', 'Tucumán'
 ];
 
+// Helper functions for formatting
+const formatDocument = (num) => {
+  if (!num) return 'S/D';
+  // Check if it's numeric only for thousands separator
+  if (/^\d+$/.test(num)) {
+    return Number(num).toLocaleString('es-AR');
+  }
+  return num;
+};
+
+const formatPhone = (phone) => {
+  if (!phone) return 'Sin teléfono';
+  // Remove non-digit characters
+  const cleaned = ('' + phone).replace(/\D/g, '');
+  
+  // Format based on length
+  // 10 digits: standard 2-digit area code (XX-XXXX-XXXX)
+  if (cleaned.length === 10) {
+    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+  }
+  
+  // 9 digits: case where there's only 1-digit area code (X-XXXX-XXXX)
+  if (cleaned.length === 9) {
+    return `${cleaned.slice(0, 1)}-${cleaned.slice(1, 5)}-${cleaned.slice(5)}`;
+  }
+  
+  // If it has 11 digits (with extra 9 for mobile), take last 10
+  if (cleaned.length === 11 && cleaned.startsWith('9')) {
+    const part = cleaned.slice(1);
+    return `${part.slice(0, 2)}-${part.slice(2, 6)}-${part.slice(6)}`;
+  }
+
+  // If it has country code (e.g. 54 11 ...), take last 10
+  if (cleaned.length >= 10) {
+    const last10 = cleaned.slice(-10);
+    return `${last10.slice(0, 2)}-${last10.slice(2, 6)}-${last10.slice(6)}`;
+  }
+
+  return phone;
+};
+
 const Patients = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -431,7 +472,7 @@ const Patients = () => {
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>DNI (8 dígitos) *</label>
+                    <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '4px' }}>Nro. de Documento *</label>
                     <input type="text" placeholder="Ej: 12345678" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} value={formData.docNumber} onChange={e => setFormData({...formData, docNumber: e.target.value})} />
                   </div>
                 </div>
@@ -580,7 +621,7 @@ const Patients = () => {
           <Search style={{ position: 'absolute', left: '12px', top: '12px', color: '#888' }} size={20} />
           <input 
             type="text" 
-            placeholder="Buscar por nombre o DNI..." 
+            placeholder="Buscar por nombre o documento..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ 
@@ -637,7 +678,7 @@ const Patients = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Paciente {getSortIcon('firstName')}</div>
               </th>
               <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('docNumber')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>DNI {getSortIcon('docNumber')}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Documento {getSortIcon('docNumber')}</div>
               </th>
               <th style={{ padding: '1rem', cursor: 'pointer', whiteSpace: 'nowrap' }} onClick={() => handleSort('phone')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>Contacto {getSortIcon('phone')}</div>
@@ -653,9 +694,12 @@ const Patients = () => {
                   {p.lastName}, {p.firstName}
                   {p.isInactive && <span style={{ fontSize: '0.7rem', backgroundColor: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>INACTIVO</span>}
                 </td>
-                <td style={{ padding: '1rem' }}>{p.docNumber}</td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontSize: '0.85rem' }}>{p.phone || 'Sin teléfono'}</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--dark-text)' }}>{formatDocument(p.docNumber)}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '2px' }}>{p.DocumentType?.name || 'S/D'}</div>
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  <div style={{ fontSize: '0.85rem' }}>{formatPhone(p.phone)}</div>
                   <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{p.email || 'Sin email'}</div>
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'center' }}>
@@ -710,10 +754,11 @@ const Patients = () => {
               
               <div style={{ marginBottom: '1.2rem', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
-                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>DNI:</span> {p.docNumber}
+                  <span style={{ fontWeight: 'bold', minWidth: '85px', color: '#444' }}>Documento:</span> 
+                  <span>{formatDocument(p.docNumber)} ({p.DocumentType?.name || 'S/D'})</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
-                  <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Teléfono:</span> {p.phone || 'N/A'}
+                  <span style={{ fontWeight: 'bold', minWidth: '85px', color: '#444' }}>Teléfono:</span> {formatPhone(p.phone)}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: '#555', fontSize: '0.9rem' }}>
                   <span style={{ fontWeight: 'bold', minWidth: '70px', color: '#444' }}>Email:</span> {p.email || 'N/A'}
@@ -824,8 +869,8 @@ const Patients = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px' }}>
                    <p style={{ margin: 0 }}><strong>Nombre:</strong> {viewingPatient.firstName}</p>
                    <p style={{ margin: 0 }}><strong>Apellido:</strong> {viewingPatient.lastName}</p>
-                   <p style={{ margin: 0 }}><strong>DNI:</strong> {viewingPatient.docNumber}</p>
-                   <p style={{ margin: 0 }}><strong>Teléfono:</strong> {viewingPatient.phone}</p>
+                   <p style={{ margin: 0 }}><strong>Documento:</strong> {formatDocument(viewingPatient.docNumber)} ({viewingPatient.DocumentType?.name || 'S/D'})</p>
+                   <p style={{ margin: 0 }}><strong>Teléfono:</strong> {formatPhone(viewingPatient.phone)}</p>
                    <p style={{ margin: 0 }}><strong>Email:</strong> {viewingPatient.email || 'N/A'}</p>
                    <p style={{ margin: 0 }}><strong>Fecha de Nac.:</strong> {viewingPatient.birthDate || 'N/A'}</p>
                    {viewingPatient.isInactive && <p style={{ margin: 0, color: '#ef4444', fontWeight: 'bold', gridColumn: '1 / -1', marginTop: '8px' }}>ESTADO: INACTIVO</p>}
