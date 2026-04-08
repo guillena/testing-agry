@@ -17,8 +17,11 @@ const Patient = sequelize.define('Patient', {
   },
   docNumber: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
+    allowNull: false
+  },
+  docTypeId: {
+    type: DataTypes.UUID,
+    allowNull: false
   },
   email: {
     type: DataTypes.STRING,
@@ -64,6 +67,13 @@ const Patient = sequelize.define('Patient', {
     type: DataTypes.STRING,
     allowNull: true
   }
+}, {
+  indexes: [
+    {
+      unique: true,
+      fields: ['docNumber', 'docTypeId']
+    }
+  ]
 });
 
 module.exports = Patient;

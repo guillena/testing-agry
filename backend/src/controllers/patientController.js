@@ -14,6 +14,14 @@ const createPatient = async (req, res) => {
     res.status(201).send(patient);
   } catch (e) {
     console.error('SERVER ERROR CREATE PATIENT:', e);
+    
+    if (e.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).send({ 
+        error: 'Ya existe un paciente con ese tipo y número de documento.',
+        message: 'Duplicate document'
+      });
+    }
+
     res.status(400).send({ 
       error: 'Error de validación o base de datos',
       message: e.message,
@@ -67,7 +75,19 @@ const updatePatient = async (req, res) => {
     await patient.update(data);
     res.send(patient);
   } catch (e) {
-    res.status(400).send(e);
+    console.error('SERVER ERROR UPDATE PATIENT:', e);
+
+    if (e.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).send({ 
+        error: 'Ya existe un paciente con ese tipo y número de documento.',
+        message: 'Duplicate document'
+      });
+    }
+
+    res.status(400).send({
+      error: 'Error al actualizar el paciente',
+      message: e.message
+    });
   }
 };
 
